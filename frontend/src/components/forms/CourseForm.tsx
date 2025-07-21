@@ -1,0 +1,186 @@
+'use client';
+
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import apiClient from '@/lib/api/client';
+import { Loader2 } from 'lucide-react';
+
+const courseSchema = z.object({
+  code: z.string().min(1, 'Course code is required'),
+  title: z.string().min(1, 'Course title is required'),
+  description: z.string().optional(),
+  credits: z.number().min(1).max(6),
+  capacity: z.number().min(1),
+  instructorId: z.number().optional(),
+});
+
+type CourseFormData = z.infer<typeof courseSchema>;
+
+interface CourseFormProps {
+  onSuccess: () => void;
+  initialData?: CourseFormData;
+}
+
+export default function CourseForm({ onSuccess, initialData }: CourseFormProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [instructors, setInstructors] = useState<any[]>([]);
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<CourseFormData>({
+    resolver: zodResolver(courseSchema),
+    defaultValues: initialData,
+  });
+
+  // Fetch instructors on component mount
+  useEffect(() => {
+    fetchInstructors();
+  }, []);
+
+  const fetchInstructors = async () => {
+    try {
+      const response = await apiClient.get('/users?role=INSTRUCTOR');
+      setInstructors(response.data);
+    } catch (error) {
+      console.error('Error fetching instructors:', error);
+    }
+  };
+
+  const onSubmit = async (data: CourseFormData) => {
+    setIsLoading(true);
+    try {
+      if (initialData) {
+        await apiClient.put(`/courses/${initialData.id}`, data);
+      } else {
+        await apiClient.post('/courses', data);
+      }
+      onSuccess();
+    } catch (error) {
+      console.error('Error saving course:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="code">Course Code</Label>
+          <Input
+            id="code"
+            placeholder="CS101"
+            {...register('code')}
+            disabled={isLoading}
+          />
+          {errors.code && (
+            <p className="text-sm text-red-500">{errors.code.message}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="credits">Credits</Label>
+          <Input
+            id="credits"
+            type="number"
+            {...register('credits', { valueAsNumber: true })}
+            disabled={isLoading}
+          />
+          {errors.credits && (
+            <p className="text-sm text-red-500">{errors.credits.message}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="title">Course Title</Label>
+        <Input
+          id="title"
+          placeholder="Introduction to Computer Science"
+          {...register('title')}
+          disabled={isLoading}
+        />
+        {errors.title && (
+          <p className="text-sm text-red-500">{errors.title.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          placeholder="Course description..."
+          {...register('description')}
+          disabled={isLoading}
+          rows={4}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="capacity">Capacity</Label>
+          <Input
+            id="capacity"
+            type="number"
+            {...register('capacity', { valueAsNumber: true })}
+            disabled={isLoading}
+          />
+          {errors.capacity && (
+            <p className="text-sm text-red-500">{errors.capacity.message}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="instructor">Instructor</Label>
+          <Select
+            onValueChange={(value) => setValue('instructorId', parseInt(value))}
+            disabled={isLoading}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select instructor" />
+            </SelectTrigger>
+            <SelectContent>
+              {instructors.map((instructor) => (
+                <SelectItem key={instructor.id} value={instructor.id.toString()}>
+                  {instructor.firstName} {instructor.lastName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex justify-end space-x-2">
+        <Button type="button" variant="outline" onClick={() => onSuccess()}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            'Save Course'
+          )}
+        </Button>
+      </div>
+    </form>
+  );
+}
