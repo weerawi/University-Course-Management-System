@@ -96,11 +96,27 @@ public class CourseService {
     }
     
     @Transactional
+    // public void deleteCourse(Long id) {
+    //     if (!courseRepository.existsById(id)) {
+    //         throw new ResourceNotFoundException("Course not found");
+    //     }
+    //     courseRepository.deleteById(id);
+    // } 
     public void deleteCourse(Long id) {
-        if (!courseRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Course not found");
+        // Check if course exists
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + id));
+        
+        try {
+            // Simple delete - let database handle cascade or throw constraint error
+            courseRepository.deleteById(id);
+        } catch (Exception e) {
+            // If foreign key constraint error, provide helpful message
+            if (e.getMessage().contains("foreign key constraint")) {
+                throw new RuntimeException("Cannot delete course. It has associated students or results. Please remove them first.");
+            }
+            throw new RuntimeException("Failed to delete course: " + e.getMessage());
         }
-        courseRepository.deleteById(id);
     }
     
     
