@@ -56,4 +56,19 @@ public class ResultController {
     ) {
         return ResponseEntity.ok(resultService.updateResult(id, request));
     }
+ 
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<ResultDTO>> getAllResults() {
+        List<ResultDTO> results = resultService.getAllResults();
+        return ResponseEntity.ok(results);
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
+    public ResponseEntity<ResultDTO> getResultById(@PathVariable Long id) {
+        ResultDTO result = resultService.getResultById(id);
+        return ResponseEntity.ok(result);
+    }
+
 }

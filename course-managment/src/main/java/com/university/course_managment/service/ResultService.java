@@ -1,16 +1,22 @@
 package com.university.course_managment.service; 
 
-import com.university.course_managment.dto.ResultDTO;
-import com.university.course_managment.dto.CreateResultRequest;
-import com.university.course_managment.entity.*;
-import com.university.course_managment.exception.ResourceNotFoundException;
-import com.university.course_managment.repository.*;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.university.course_managment.dto.CreateResultRequest;
+import com.university.course_managment.dto.ResultDTO;
+import com.university.course_managment.entity.Course;
+import com.university.course_managment.entity.Result;
+import com.university.course_managment.entity.Student;
+import com.university.course_managment.exception.ResourceNotFoundException;
+import com.university.course_managment.repository.CourseRepository;
+import com.university.course_managment.repository.ResultRepository;
+import com.university.course_managment.repository.StudentRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -86,16 +92,16 @@ public class ResultService {
     }
     
     private String calculateGrade(double score) {
-        if (score >= 90) return "A+";
-        else if (score >= 85) return "A";
-        else if (score >= 80) return "A-";
-        else if (score >= 75) return "B+";
-        else if (score >= 70) return "B";
-        else if (score >= 65) return "B-";
-        else if (score >= 60) return "C+";
-        else if (score >= 55) return "C";
-        else if (score >= 50) return "C-";
-        else if (score >= 45) return "D";
+        if (score >= 85) return "A+";
+        else if (score >= 70) return "A";
+        else if (score >= 65) return "A-";
+        else if (score >= 60) return "B+";
+        else if (score >= 55) return "B";
+        else if (score >= 50) return "B-";
+        else if (score >= 45) return "C+";
+        else if (score >= 40) return "C";
+        else if (score >= 35) return "C-";
+        else if (score >= 30) return "D";
         else return "F";
     }
     
@@ -114,5 +120,39 @@ public class ResultService {
         dto.setGrade(result.getGrade());
         dto.setSemester(result.getSemester());
         return dto;
+    }
+
+    public List<ResultDTO> getAllResults() {
+        return resultRepository.findAll().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public ResultDTO getResultById(Long id) {
+        Result result = resultRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Result not found with id: " + id));
+        return mapToDTO(result);
+    }
+
+    @Transactional
+    public void deleteResult(Long id) {
+        if (!resultRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Result not found with id: " + id);
+        }
+        resultRepository.deleteById(id);
+    }
+
+    public List<ResultDTO> getResultsByStudentId(Long studentId) {
+        return resultRepository.findAll().stream()
+                .filter(result -> result.getStudent().getId().equals(studentId))
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<ResultDTO> getResultsByCourseId(Long courseId) {
+        return resultRepository.findAll().stream()
+                .filter(result -> result.getCourse().getId().equals(courseId))
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 }

@@ -1,8 +1,8 @@
 package com.university.course_managment.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
 @Data
 @NoArgsConstructor
@@ -16,4 +16,5 @@ public class StudentDTO {
     private String department;
     private Integer year;
     private Integer enrolledCourses;
+    // private Long userId; 
 }
