@@ -19,10 +19,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/lib/store/auth.store';
 import apiClient from '@/lib/api/client';
-import { Plus, Search, Users, Clock, BookOpen } from 'lucide-react';
+import { Plus, Search, Users, Clock, BookOpen, Trash, Edit } from 'lucide-react';
 import CourseForm from '@/components/forms/CourseForm';
 
 interface Course {
@@ -34,6 +44,7 @@ interface Course {
   capacity: number;
   enrolledStudents: number;
   instructorName: string;
+  instructorId?: number;
 }
 
 export default function CoursesPage() {
@@ -42,6 +53,9 @@ export default function CoursesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     fetchCourses();
@@ -49,6 +63,7 @@ export default function CoursesPage() {
 
   const fetchCourses = async () => {
     try {
+      setLoading(true);
       const response = await apiClient.get('/courses');
       setCourses(response.data);
     } catch (error) {
@@ -65,6 +80,30 @@ export default function CoursesPage() {
     } catch (error) {
       console.error('Error enrolling in course:', error);
     }
+  };
+  
+  const handleEdit = (course: Course) => {
+    setSelectedCourse(course);
+    setIsEditing(true);
+    setDialogOpen(true);
+  };
+  
+  const handleDelete = async () => {
+    if (!selectedCourse) return;
+    
+    try {
+      await apiClient.delete(`/courses/${selectedCourse.id}`);
+      fetchCourses();
+      setDeleteDialogOpen(false);
+      setSelectedCourse(null);
+    } catch (error) {
+      console.error('Error deleting course:', error);
+    }
+  };
+
+  const openDeleteDialog = (course: Course) => {
+    setSelectedCourse(course);
+    setDeleteDialogOpen(true);
   };
 
   const filteredCourses = courses.filter(
@@ -84,7 +123,13 @@ export default function CoursesPage() {
         </div>
 
         {user?.role === 'ADMIN' && (
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) {
+              setIsEditing(false);
+              setSelectedCourse(null);
+            }
+          }}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
@@ -93,16 +138,19 @@ export default function CoursesPage() {
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Create New Course</DialogTitle>
+                <DialogTitle>{isEditing ? 'Edit Course' : 'Create New Course'}</DialogTitle>
                 <DialogDescription>
-                  Add a new course to the system
+                  {isEditing ? 'Update course details' : 'Add a new course to the system'}
                 </DialogDescription>
               </DialogHeader>
               <CourseForm
                 onSuccess={() => {
                   setDialogOpen(false);
+                  setIsEditing(false);
+                  setSelectedCourse(null);
                   fetchCourses();
                 }}
+                initialData={selectedCourse}
               />
             </DialogContent>
           </Dialog>
@@ -170,11 +218,19 @@ export default function CoursesPage() {
                 )}
                 {user?.role === 'ADMIN' && (
                   <div className="flex gap-2 w-full">
-                    <Button variant="outline" className="flex-1">
-                      Edit
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => handleEdit(course)}
+                    >
+                      <Edit className="h-4 w-4 mr-2" /> Edit
                     </Button>
-                    <Button variant="destructive" className="flex-1">
-                      Delete
+                    <Button 
+                      variant="destructive" 
+                      className="flex-1"
+                      onClick={() => openDeleteDialog(course)}
+                    >
+                      <Trash className="h-4 w-4 mr-2" /> Delete
                     </Button>
                   </div>
                 )}
@@ -183,6 +239,24 @@ export default function CoursesPage() {
           ))}
         </div>
       )}
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Course</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{selectedCourse?.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
