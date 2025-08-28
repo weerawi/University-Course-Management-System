@@ -1,5 +1,11 @@
 package com.university.course_managment.service; 
 
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.university.course_managment.dto.auth.AuthResponse;
 import com.university.course_managment.dto.auth.LoginRequest;
 import com.university.course_managment.dto.auth.RegisterRequest;
@@ -9,12 +15,8 @@ import com.university.course_managment.exception.ResourceNotFoundException;
 import com.university.course_managment.repository.StudentRepository;
 import com.university.course_managment.repository.UserRepository;
 import com.university.course_managment.security.JwtService;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -63,6 +65,7 @@ public class AuthService {
         
         return AuthResponse.builder()
                 .token(token)
+                .id(user.getId()) 
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
@@ -85,6 +88,7 @@ public class AuthService {
         
         return AuthResponse.builder()
                 .token(token)
+                .id(user.getId()) 
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())

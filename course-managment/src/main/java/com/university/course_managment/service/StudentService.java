@@ -103,7 +103,11 @@ public class StudentService {
         dto.setEmail(student.getUser().getEmail());
         dto.setDepartment(student.getDepartment());
         dto.setYear(student.getYear());
-        dto.setEnrolledCourses(student.getCourses() != null ? student.getCourses().size() : 0);
+        if (student.getCourses() != null) {
+            dto.setEnrolledCourses(student.getCourses().size());
+        } else {
+            dto.setEnrolledCourses(0);
+        }
         return dto;
     }
     
