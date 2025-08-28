@@ -1,14 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuthStore } from '@/lib/store/auth.store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -18,29 +23,25 @@ import {
 } from '@/components/ui/dialog';
 import {
   Tabs,
-  TabsContent,
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import {
-  Badge,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { useAuthStore } from '@/lib/store/auth.store';
+import { 
+  Search, 
+  Plus, 
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  UserCheck,
+  UserX,
+} from 'lucide-react';
 import apiClient from '@/lib/api/client';
-import { Plus, Search, MoreVertical, Pencil, Trash2, X, Check } from 'lucide-react';
 import UserForm from '@/components/forms/UserForm';
 
 interface User {
@@ -68,34 +69,34 @@ export default function UsersPage() {
   }, [activeTab]);
 
   const fetchUsers = async () => {
-  try {
-    setLoading(true);
-    console.log("Fetching users with active tab:", activeTab);
-    
-    let url = '/users';
-    
-    if (activeTab !== 'all') {
-      url += `?role=${activeTab.toUpperCase()}`;
+    try {
+      setLoading(true);
+      console.log("Fetching users with active tab:", activeTab);
+      
+      let url = '/users';
+      
+      if (activeTab !== 'all') {
+        url += `?role=${activeTab.toUpperCase()}`;
+      }
+      
+      console.log("API URL:", url);
+      const response = await apiClient.get(url);
+      console.log("Users response:", response.data);
+      setUsers(response.data || []);
+    } catch (error: any) {
+      console.error('Error fetching users:', error);
+      console.error('Response details:', error.response?.data);
+      // Show error message to user
+      if (error.response?.status === 403) {
+        alert("You don't have permission to view users.");
+      } else {
+        alert(`Error fetching users: ${error.response?.data?.message || 'Unknown error'}`);
+      }
+      setUsers([]);
+    } finally {
+      setLoading(false);
     }
-    
-    console.log("API URL:", url);
-    const response = await apiClient.get(url);
-    console.log("Users response:", response.data);
-    setUsers(response.data || []);
-  } catch (error: any) {
-    console.error('Error fetching users:', error);
-    console.error('Response details:', error.response?.data);
-    // Show error message to user
-    if (error.response?.status === 403) {
-      alert("You don't have permission to view users.");
-    } else {
-      alert(`Error fetching users: ${error.response?.data?.message || 'Unknown error'}`);
-    }
-    setUsers([]);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
@@ -121,6 +122,15 @@ export default function UsersPage() {
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case 'ADMIN': return 'bg-red-100 text-red-800';
+      case 'INSTRUCTOR': return 'bg-blue-100 text-blue-800';
+      case 'STUDENT': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   return (
     <div>
@@ -219,42 +229,38 @@ export default function UsersPage() {
                       <TableCell>{user.firstName} {user.lastName}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
-                        <Badge className={
-                          user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' :
-                          user.role === 'INSTRUCTOR' ? 'bg-blue-100 text-blue-800' :
-                          'bg-green-100 text-green-800'
-                        }>
+                        <Badge className={getRoleBadgeColor(user.role)}>
                           {user.role}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         {user.enabled ? (
-                          <Badge className="bg-green-100 text-green-800">
-                            <Check className="h-3 w-3 mr-1" /> Active
-                          </Badge>
+                          <div className="flex items-center text-green-600">
+                            <UserCheck className="h-4 w-4 mr-1" />
+                            Active
+                          </div>
                         ) : (
-                          <Badge variant="outline" className="text-gray-500">
-                            <X className="h-3 w-3 mr-1" /> Inactive
-                          </Badge>
+                          <div className="flex items-center text-red-600">
+                            <UserX className="h-4 w-4 mr-1" />
+                            Inactive
+                          </div>
                         )}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
-                              <MoreVertical className="h-4 w-4" />
+                              <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => handleEdit(user)}>
-                              <Pencil className="h-4 w-4 mr-2" />
+                              <Edit className="h-4 w-4 mr-2" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
                             <DropdownMenuItem 
                               onClick={() => handleDelete(user.id)}
                               className="text-red-600"
-                              disabled={user.id === currentUser?.id}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete
