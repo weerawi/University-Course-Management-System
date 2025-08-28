@@ -77,15 +77,25 @@ export default function CourseForm({ onSuccess, initialData }: CourseFormProps) 
     }
   }, [initialData, reset]);
 
-  const fetchInstructors = async () => {
+//   const fetchInstructors = async () => {
+//   try {
+//     // Using instructors endpoint directly - make sure this endpoint exists on your backend
+//     const response = await apiClient.get('/users?role=INSTRUCTOR');
+//     console.log('Instructors response:', response.data); // Log to check what's coming back
+//     setInstructors(response.data || []);
+//   } catch (error) {
+//     console.error('Error fetching instructors:', error);
+//     // Set empty array to avoid null errors
+//     setInstructors([]);
+//   }
+// };
+const fetchInstructors = async () => {
   try {
-    // Using instructors endpoint directly - make sure this endpoint exists on your backend
+    // Change this line to use the correct endpoint
     const response = await apiClient.get('/users?role=INSTRUCTOR');
-    console.log('Instructors response:', response.data); // Log to check what's coming back
     setInstructors(response.data || []);
   } catch (error) {
     console.error('Error fetching instructors:', error);
-    // Set empty array to avoid null errors
     setInstructors([]);
   }
 };

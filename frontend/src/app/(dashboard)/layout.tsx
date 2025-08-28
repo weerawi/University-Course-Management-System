@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/auth.store';
 import Sidebar from '@/components/layout/Sidebar';
@@ -12,16 +12,39 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const { isLoggedIn, user, token } = useAuthStore();
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, router]);
+    setIsClient(true);
+  }, []);
 
-  if (!isAuthenticated) {
-    return null;
+  useEffect(() => {
+    if (isClient) {
+      console.log('Dashboard Layout - Auth Status:', { isLoggedIn, user, token: !!token });
+      
+      if (!isLoggedIn || !user || !token) {
+        console.log('Not authenticated, redirecting to login...');
+        router.push('/login');
+      }
+    }
+  }, [isClient, isLoggedIn, user, token, router]);
+
+  // Show loading spinner while checking authentication on client side
+  if (!isClient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!isLoggedIn || !user || !token) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
 
   return (
