@@ -1,19 +1,20 @@
-package com.university.course_managment.service; 
+package com.university.course_managment.service;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.university.course_managment.dto.CourseDTO;
 import com.university.course_managment.dto.CreateCourseRequest;
 import com.university.course_managment.entity.Course;
+import com.university.course_managment.entity.Student;
 import com.university.course_managment.entity.User;
 import com.university.course_managment.exception.ResourceNotFoundException;
 import com.university.course_managment.repository.CourseRepository;
+import com.university.course_managment.repository.ResultRepository;
+import com.university.course_managment.repository.StudentRepository;
 import com.university.course_managment.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -24,9 +25,16 @@ public class CourseService {
     
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
+    private final StudentRepository studentRepository;
+    private final ResultRepository resultRepository;
     
     @Transactional
     public CourseDTO createCourse(CreateCourseRequest request) {
+        // Check if course code already exists
+        if (courseRepository.findByCode(request.getCode()).isPresent()) {
+            throw new RuntimeException("Course with code " + request.getCode() + " already exists");
+        }
+        
         Course course = Course.builder()
                 .code(request.getCode())
                 .title(request.getTitle())
@@ -61,23 +69,18 @@ public class CourseService {
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
         return mapToDTO(course);
     }
-
-    public Page<CourseDTO> searchCourses(String keyword, String department, Pageable pageable) {
-        Page<Course> courses;
-        
-        if (keyword != null && !keyword.isEmpty()) {
-            courses = courseRepository.findByTitleContainingOrCodeContaining(keyword, keyword, pageable);
-        } else {
-            courses = courseRepository.findAll(pageable);
-        }
-        
-        return courses.map(this::mapToDTO);
-    }
     
     @Transactional
     public CourseDTO updateCourse(Long id, CreateCourseRequest request) {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
+        
+        // Check if new code conflicts with existing courses
+        if (!course.getCode().equals(request.getCode())) {
+            if (courseRepository.findByCode(request.getCode()).isPresent()) {
+                throw new RuntimeException("Course with code " + request.getCode() + " already exists");
+            }
+        }
         
         course.setCode(request.getCode());
         course.setTitle(request.getTitle());
@@ -88,7 +91,14 @@ public class CourseService {
         if (request.getInstructorId() != null) {
             User instructor = userRepository.findById(request.getInstructorId())
                     .orElseThrow(() -> new ResourceNotFoundException("Instructor not found"));
+            
+            if (instructor.getRole() != User.Role.INSTRUCTOR) {
+                throw new RuntimeException("User is not an instructor");
+            }
+            
             course.setInstructor(instructor);
+        } else {
+            course.setInstructor(null);
         }
         
         course = courseRepository.save(course);
@@ -96,29 +106,24 @@ public class CourseService {
     }
     
     @Transactional
-    // public void deleteCourse(Long id) {
-    //     if (!courseRepository.existsById(id)) {
-    //         throw new ResourceNotFoundException("Course not found");
-    //     }
-    //     courseRepository.deleteById(id);
-    // } 
     public void deleteCourse(Long id) {
-        // Check if course exists
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + id));
         
-        try {
-            // Simple delete - let database handle cascade or throw constraint error
-            courseRepository.deleteById(id);
-        } catch (Exception e) {
-            // If foreign key constraint error, provide helpful message
-            if (e.getMessage().contains("foreign key constraint")) {
-                throw new RuntimeException("Cannot delete course. It has associated students or results. Please remove them first.");
-            }
-            throw new RuntimeException("Failed to delete course: " + e.getMessage());
+        // Check if course has enrolled students
+        if (!course.getStudents().isEmpty()) {
+            throw new RuntimeException("Cannot delete course. " + course.getStudents().size() + 
+                    " students are enrolled. Please remove all enrollments first.");
         }
+        
+        // Check if course has results
+        if (!course.getResults().isEmpty()) {
+            throw new RuntimeException("Cannot delete course. It has " + course.getResults().size() + 
+                    " associated results. Please delete results first.");
+        }
+        
+        courseRepository.deleteById(id);
     }
-    
     
     private CourseDTO mapToDTO(Course course) {
         CourseDTO dto = new CourseDTO();
@@ -128,7 +133,7 @@ public class CourseService {
         dto.setDescription(course.getDescription());
         dto.setCredits(course.getCredits());
         dto.setCapacity(course.getCapacity());
-        dto.setEnrolledStudents(courseRepository.getEnrolledStudentCount(course.getId()));
+        dto.setEnrolledStudents(course.getStudents() != null ? course.getStudents().size() : 0);
         
         if (course.getInstructor() != null) {
             dto.setInstructorId(course.getInstructor().getId());

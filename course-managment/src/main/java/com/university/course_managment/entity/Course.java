@@ -1,22 +1,12 @@
-package com.university.course_managment.entity; 
+package com.university.course_managment.entity;
 
 import java.util.HashSet;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
 @Table(name = "courses")
@@ -24,7 +14,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = true, exclude = {"students", "results"})
+@ToString(exclude = {"students", "results", "instructor"})
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Course extends BaseEntity {
     
@@ -46,7 +37,11 @@ public class Course extends BaseEntity {
     @JsonIgnoreProperties({"courses", "password", "hibernateLazyInitializer"})
     private User instructor;
     
-    @ManyToMany(mappedBy = "courses")
+    @ManyToMany(mappedBy = "courses", fetch = FetchType.LAZY)
     @Builder.Default
     private Set<Student> students = new HashSet<>();
+    
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<Result> results = new HashSet<>();
 }

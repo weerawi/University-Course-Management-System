@@ -10,9 +10,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.university.course_managment.dto.CreateUserRequest;
 import com.university.course_managment.dto.UpdateUserRequest;
 import com.university.course_managment.dto.UserDTO;
+import com.university.course_managment.entity.Student;
 import com.university.course_managment.entity.User;
 import com.university.course_managment.entity.User.Role;
 import com.university.course_managment.exception.ResourceNotFoundException;
+import com.university.course_managment.repository.CourseRepository;
 import com.university.course_managment.repository.StudentRepository;
 import com.university.course_managment.repository.UserRepository;
 
@@ -24,6 +26,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
+    private final CourseRepository courseRepository;
     private final PasswordEncoder passwordEncoder;
 
     public List<UserDTO> getAllUsers() {
@@ -78,6 +81,16 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
+        // Don't allow role change if user has dependencies
+        if (!user.getRole().name().equals(request.getRole())) {
+            if (user.getRole() == Role.STUDENT && studentRepository.existsByUserId(id)) {
+                throw new RuntimeException("Cannot change role. User has a student profile.");
+            }
+            if (user.getRole() == Role.INSTRUCTOR && !courseRepository.findByInstructor(user).isEmpty()) {
+                throw new RuntimeException("Cannot change role. User is assigned to courses.");
+            }
+        }
+
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
         user.setRole(Role.valueOf(request.getRole()));
@@ -89,9 +102,23 @@ public class UserService {
 
     @Transactional
     public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new ResourceNotFoundException("User not found with id: " + id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        
+        // Check dependencies
+        if (user.getRole() == Role.STUDENT) {
+            Student student = studentRepository.findByUserId(id).orElse(null);
+            if (student != null) {
+                throw new RuntimeException("Cannot delete user. User has a student profile. Delete the student first.");
+            }
         }
+        
+        if (user.getRole() == Role.INSTRUCTOR) {
+            if (!courseRepository.findByInstructor(user).isEmpty()) {
+                throw new RuntimeException("Cannot delete user. User is assigned to courses.");
+            }
+        }
+        
         userRepository.deleteById(id);
     }
 

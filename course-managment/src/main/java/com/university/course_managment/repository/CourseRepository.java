@@ -1,10 +1,8 @@
-package com.university.course_managment.repository; 
+package com.university.course_managment.repository;
 
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,6 +21,6 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     
     @Query("SELECT COUNT(s) FROM Course c JOIN c.students s WHERE c.id = :courseId")
     Integer getEnrolledStudentCount(@Param("courseId") Long courseId);
-
-    Page<Course> findByTitleContainingOrCodeContaining(String title, String code, Pageable pageable);
+    
+    boolean existsByCode(String code);
 }

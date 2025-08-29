@@ -1,10 +1,11 @@
-package com.university.course_managment.service; 
+package com.university.course_managment.service;
 
 import com.university.course_managment.entity.Course;
 import com.university.course_managment.entity.Student;
 import com.university.course_managment.entity.User;
 import com.university.course_managment.exception.ResourceNotFoundException;
 import com.university.course_managment.repository.CourseRepository;
+import com.university.course_managment.repository.ResultRepository;
 import com.university.course_managment.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,14 +18,15 @@ public class EnrollmentService {
     
     private final StudentRepository studentRepository;
     private final CourseRepository courseRepository;
+    private final ResultRepository resultRepository;
     
     @Transactional
     public void enrollInCourse(Long courseId) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
         
-        Student student = studentRepository.findByUser(currentUser)
-                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+        Student student = studentRepository.findByUserId(currentUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Student profile not found for user"));
         
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
@@ -35,11 +37,11 @@ public class EnrollmentService {
         }
         
         // Check capacity
-        Integer enrolled = courseRepository.getEnrolledStudentCount(courseId);
-        if (enrolled >= course.getCapacity()) {
+        if (course.getStudents().size() >= course.getCapacity()) {
             throw new RuntimeException("Course is full");
         }
         
+        // Add enrollment
         student.getCourses().add(course);
         studentRepository.save(student);
     }
@@ -49,8 +51,8 @@ public class EnrollmentService {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
         
-        Student student = studentRepository.findByUser(currentUser)
-                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+        Student student = studentRepository.findByUserId(currentUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Student profile not found for user"));
         
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
@@ -59,6 +61,12 @@ public class EnrollmentService {
             throw new RuntimeException("Not enrolled in this course");
         }
         
+        // Check if student has results for this course
+        if (resultRepository.findByStudentAndCourse(student, course).isPresent()) {
+            throw new RuntimeException("Cannot drop course with existing results");
+        }
+        
+        // Remove enrollment
         student.getCourses().remove(course);
         studentRepository.save(student);
     }

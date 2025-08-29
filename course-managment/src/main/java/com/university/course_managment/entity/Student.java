@@ -1,21 +1,10 @@
-package com.university.course_managment.entity; 
+package com.university.course_managment.entity;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
 @Table(name = "students")
@@ -23,21 +12,22 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = true, exclude = {"courses", "results"})
+@ToString(exclude = {"courses", "results", "user"})
 public class Student extends BaseEntity {
     
     @Column(unique = true, nullable = false)
     private String studentId;
     
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.MERGE)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
     
     private String department;
     
     private Integer year;
     
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
         name = "student_courses",
         joinColumns = @JoinColumn(name = "student_id"),
@@ -45,4 +35,8 @@ public class Student extends BaseEntity {
     )
     @Builder.Default
     private Set<Course> courses = new HashSet<>();
+    
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<Result> results = new HashSet<>();
 }

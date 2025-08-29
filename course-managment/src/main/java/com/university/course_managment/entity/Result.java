@@ -1,24 +1,17 @@
 package com.university.course_managment.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
-@Table(name = "results")
+@Table(name = "results", 
+       uniqueConstraints = @UniqueConstraint(columnNames = {"student_id", "course_id", "year", "semester"}))
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
+@ToString(exclude = {"student", "course"})
 public class Result extends BaseEntity {
     
     @ManyToOne(fetch = FetchType.LAZY)
