@@ -12,9 +12,14 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Bell, Search, User, LogOut, Settings } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+// In frontend/src/components/layout/Header.tsx
+// Update the dropdown menu to include profile link:
+
+import { useRouter } from 'next/navigation';
 
 export default function Header() {
   const { user, logout } = useAuthStore();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleLogout = () => {
@@ -72,11 +77,11 @@ export default function Header() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/profile')}>
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/profile')}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>

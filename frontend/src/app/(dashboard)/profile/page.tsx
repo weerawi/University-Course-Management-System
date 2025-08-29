@@ -78,31 +78,23 @@ export default function ProfilePage() {
     fetchProfileData();
   }, []);
 
-  const fetchProfileData = async () => {
+const fetchProfileData = async () => {
   try {
     setLoading(true);
     let response;
     
-    try {
-      // Try the /profile endpoint first
-      response = await apiClient.get('/users/profile');
-    } catch (error) {
-      console.warn("Profile endpoint failed, falling back to direct user ID", error);
+    // Use user ID directly since we have it
+    if (user?.id) {
+      response = await apiClient.get(`/users/${user.id}`);
+      setProfileData(response.data);
       
-      // Fallback: Use the user ID from the auth store
-      if (user?.id) {
-        response = await apiClient.get(`/users/${user.id}`);
-      } else {
-        throw new Error("No user ID available");
-      }
+      resetProfile({
+        firstName: response.data.firstName,
+        lastName: response.data.lastName,
+      });
+    } else {
+      throw new Error("No user ID available");
     }
-    
-    setProfileData(response.data);
-    
-    resetProfile({
-      firstName: response.data.firstName,
-      lastName: response.data.lastName,
-    });
   } catch (error) {
     console.error('Error fetching profile:', error);
     setErrorMessage('Failed to load profile data');

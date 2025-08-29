@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react'; // Add useEffect import
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -31,12 +31,13 @@ type CourseFormData = z.infer<typeof courseSchema>;
 
 interface CourseFormProps {
   onSuccess: () => void;
-  initialData?: any; // Change to any to accept course data from API
+  initialData?: any;
 }
 
 export default function CourseForm({ onSuccess, initialData }: CourseFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [instructors, setInstructors] = useState<any[]>([]);
+  const [selectedInstructorId, setSelectedInstructorId] = useState<string>('');
 
   const {
     register,
@@ -57,14 +58,13 @@ export default function CourseForm({ onSuccess, initialData }: CourseFormProps) 
       description: '',
       credits: 3,
       capacity: 30,
+      instructorId: null,
     },
   });
 
-  // Fetch instructors on component mount
   useEffect(() => {
     fetchInstructors();
     
-    // If we have initialData, set form values
     if (initialData) {
       reset({
         code: initialData.code,
@@ -74,46 +74,50 @@ export default function CourseForm({ onSuccess, initialData }: CourseFormProps) 
         capacity: initialData.capacity,
         instructorId: initialData.instructorId,
       });
+      setSelectedInstructorId(initialData.instructorId ? initialData.instructorId.toString() : '');
     }
   }, [initialData, reset]);
 
-//   const fetchInstructors = async () => {
-//   try {
-//     // Using instructors endpoint directly - make sure this endpoint exists on your backend
-//     const response = await apiClient.get('/users?role=INSTRUCTOR');
-//     console.log('Instructors response:', response.data); // Log to check what's coming back
-//     setInstructors(response.data || []);
-//   } catch (error) {
-//     console.error('Error fetching instructors:', error);
-//     // Set empty array to avoid null errors
-//     setInstructors([]);
-//   }
-// };
-const fetchInstructors = async () => {
-  try {
-    // Change this line to use the correct endpoint
-    const response = await apiClient.get('/users?role=INSTRUCTOR');
-    setInstructors(response.data || []);
-  } catch (error) {
-    console.error('Error fetching instructors:', error);
-    setInstructors([]);
-  }
-};
+  const fetchInstructors = async () => {
+    try {
+      const response = await apiClient.get('/users?role=INSTRUCTOR');
+      console.log('Instructors fetched:', response.data);
+      setInstructors(response.data || []);
+    } catch (error) {
+      console.error('Error fetching instructors:', error);
+      setInstructors([]);
+    }
+  };
 
   const onSubmit = async (data: CourseFormData) => {
     setIsLoading(true);
     try {
+      const payload = {
+        ...data,
+        instructorId: selectedInstructorId && selectedInstructorId !== 'none' 
+          ? parseInt(selectedInstructorId) 
+          : null
+      };
+
+      console.log('Submitting course data:', payload);
+
       if (initialData?.id) {
-        await apiClient.put(`/courses/${initialData.id}`, data);
+        await apiClient.put(`/courses/${initialData.id}`, payload);
       } else {
-        await apiClient.post('/courses', data);
+        await apiClient.post('/courses', payload);
       }
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving course:', error);
+      alert(error.response?.data?.message || 'Failed to save course');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleInstructorChange = (value: string) => {
+    setSelectedInstructorId(value);
+    setValue('instructorId', value === 'none' ? null : parseInt(value));
   };
 
   return (
@@ -187,15 +191,15 @@ const fetchInstructors = async () => {
         <div className="space-y-2">
           <Label htmlFor="instructor">Instructor</Label>
           <Select
-            defaultValue={initialData?.instructorId?.toString()}
-            onValueChange={(value) => setValue('instructorId', value === 'none' ? null : parseInt(value))}
+            value={selectedInstructorId}
+            onValueChange={handleInstructorChange}
             disabled={isLoading}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select instructor" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">None</SelectItem> {/* Use "none" instead of empty string */}
+              <SelectItem value="none">None</SelectItem>
               {instructors.map((instructor) => (
                 <SelectItem key={instructor.id} value={instructor.id.toString()}>
                   {instructor.firstName} {instructor.lastName}
