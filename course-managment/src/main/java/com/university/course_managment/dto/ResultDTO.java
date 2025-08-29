@@ -18,5 +18,6 @@ public class ResultDTO {
     private Double finalScore;
     private Double totalScore;
     private String grade;
+    private Integer year;
     private String semester;
 }

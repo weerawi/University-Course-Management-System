@@ -89,7 +89,6 @@
 //     }
 // }
 
-
 package com.university.course_managment.service;  
 
 import com.university.course_managment.dto.DashboardStats;
@@ -122,7 +121,7 @@ public class DashboardService {
         stats.setTotalStudents(studentRepository.count());
         stats.setTotalCourses(courseRepository.count());
         
-        // Fix: Count instructors manually since countByRole might not exist
+        // Count instructors manually
         long instructorCount = userRepository.findAll().stream()
                 .filter(user -> user.getRole() == User.Role.INSTRUCTOR)
                 .count();
@@ -143,27 +142,26 @@ public class DashboardService {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
         
-        // Fix: Find student by user ID instead
         Student student = studentRepository.findByUserId(currentUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
         
         DashboardStats stats = new DashboardStats();
-        stats.setEnrolledCourses(student.getCourses() != null ? student.getCourses().size() : 0);
+        stats.setEnrolledCourses(student.getCourses().size());
         
-        // Fix: Count results manually if findByStudentId doesn't exist
-        List<Result> results = resultRepository.findAll().stream()
-                .filter(result -> result.getStudent().getId().equals(student.getId()))
-                .collect(java.util.stream.Collectors.toList());
-        
+        // Get results for this student
+        List<Result> results = resultRepository.findByStudent(student);
         stats.setCompletedCourses(results.size());
         
         // Calculate GPA
         if (!results.isEmpty()) {
-            double totalScore = results.stream()
+            double averageScore = results.stream()
                     .mapToDouble(Result::getTotalScore)
                     .average()
                     .orElse(0.0);
-            stats.setGpa(totalScore / 25.0); // Convert to 4.0 scale
+            // Convert to 4.0 scale (assuming 100 point scale)
+            stats.setGpa(averageScore / 25.0);
+        } else {
+            stats.setGpa(0.0);
         }
         
         return stats;
@@ -174,17 +172,12 @@ public class DashboardService {
                 .getAuthentication().getPrincipal();
         
         DashboardStats stats = new DashboardStats();
-        
-        // Fix: Filter courses by instructor manually
-        List<Course> courses = courseRepository.findAll().stream()
-                .filter(course -> course.getInstructor() != null && 
-                        course.getInstructor().getId().equals(currentUser.getId()))
-                .collect(java.util.stream.Collectors.toList());
+        List<Course> courses = courseRepository.findByInstructor(currentUser);
         
         stats.setTotalCourses((long) courses.size());
         
         long totalStudents = courses.stream()
-                .mapToLong(course -> course.getStudents() != null ? course.getStudents().size() : 0)
+                .mapToLong(course -> course.getStudents().size())
                 .sum();
         stats.setTotalStudents(totalStudents);
         
@@ -196,7 +189,7 @@ public class DashboardService {
         if (allCourses.isEmpty()) return 0.0;
         
         return allCourses.stream()
-                .mapToInt(course -> course.getStudents() != null ? course.getStudents().size() : 0)
+                .mapToInt(course -> course.getStudents().size())
                 .average()
                 .orElse(0.0);
     }

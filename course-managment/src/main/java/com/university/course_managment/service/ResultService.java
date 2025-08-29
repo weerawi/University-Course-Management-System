@@ -1,6 +1,7 @@
 package com.university.course_managment.service; 
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -34,9 +35,12 @@ public class ResultService {
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
         
-        // Check if result already exists
-        if (resultRepository.findByStudentAndCourse(student, course).isPresent()) {
-            throw new RuntimeException("Result already exists for this student and course");
+        // Check if result already exists for this student, course, year, and semester
+        Optional<Result> existingResult = resultRepository.findByStudentAndCourseAndYearAndSemester(
+                student, course, request.getYear(), request.getSemester());
+        
+        if (existingResult.isPresent()) {
+            throw new RuntimeException("Result already exists for this student, course, year, and semester");
         }
         
         Result result = Result.builder()
@@ -44,6 +48,7 @@ public class ResultService {
                 .course(course)
                 .midtermScore(request.getMidtermScore())
                 .finalScore(request.getFinalScore())
+                .year(request.getYear())
                 .semester(request.getSemester())
                 .build();
         
@@ -81,6 +86,7 @@ public class ResultService {
         
         result.setMidtermScore(request.getMidtermScore());
         result.setFinalScore(request.getFinalScore());
+        result.setYear(request.getYear());
         result.setSemester(request.getSemester());
         
         double total = (request.getMidtermScore() * 0.4) + (request.getFinalScore() * 0.6);
@@ -91,6 +97,7 @@ public class ResultService {
         return mapToDTO(result);
     }
     
+    // Fix the incomplete calculateGrade method
     private String calculateGrade(double score) {
         if (score >= 85) return "A+";
         else if (score >= 70) return "A";
@@ -110,7 +117,7 @@ public class ResultService {
         dto.setId(result.getId());
         dto.setStudentId(result.getStudent().getId());
         dto.setStudentName(result.getStudent().getUser().getFirstName() + " " + 
-                          result.getStudent().getUser().getLastName());
+                        result.getStudent().getUser().getLastName());
         dto.setCourseId(result.getCourse().getId());
         dto.setCourseCode(result.getCourse().getCode());
         dto.setCourseTitle(result.getCourse().getTitle());
@@ -118,6 +125,7 @@ public class ResultService {
         dto.setFinalScore(result.getFinalScore());
         dto.setTotalScore(result.getTotalScore());
         dto.setGrade(result.getGrade());
+        dto.setYear(result.getYear());
         dto.setSemester(result.getSemester());
         return dto;
     }

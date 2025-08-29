@@ -106,6 +106,11 @@ public class UserService {
     }
     
     private UserDTO mapToDTO(User user) {
+        boolean hasStudentProfile = false;
+        if (user.getRole() == Role.STUDENT) {
+            hasStudentProfile = studentRepository.existsByUserId(user.getId());
+        }
+        
         return UserDTO.builder()
                 .id(user.getId())
                 .email(user.getEmail())
@@ -113,7 +118,7 @@ public class UserService {
                 .lastName(user.getLastName())
                 .role(user.getRole().name())
                 .enabled(user.isEnabled())
-                .hasStudentProfile(studentRepository.existsByUserId(user.getId()))
+                .hasStudentProfile(hasStudentProfile)
                 .build();
     }
 }

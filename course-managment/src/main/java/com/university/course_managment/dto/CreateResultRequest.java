@@ -24,6 +24,11 @@ public class CreateResultRequest {
     private Double finalScore;
     
     @NotNull
+    @Min(1)
+    @Max(4)
+    private Integer year;  
+    
+    @NotNull
     private String semester;
 }
 

@@ -38,5 +38,8 @@ public class Result extends BaseEntity {
     private String grade;
     
     @Column(nullable = false)
+    private Integer year;
+    
+    @Column(nullable = false)
     private String semester;
 }

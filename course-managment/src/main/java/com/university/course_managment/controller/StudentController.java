@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.university.course_managment.dto.CourseDTO;
 import com.university.course_managment.dto.StudentDTO;
 import com.university.course_managment.service.EnrollmentService;
 import com.university.course_managment.service.StudentService;
@@ -84,5 +85,12 @@ public class StudentController {
     public ResponseEntity<Void> dropCourse(@PathVariable Long courseId) {
         enrollmentService.dropCourse(courseId);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{id}/courses")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
+    public ResponseEntity<List<CourseDTO>> getStudentCourses(@PathVariable Long id) {
+        List<CourseDTO> courses = studentService.getEnrolledCourses(id);
+        return ResponseEntity.ok(courses);
     }
 }

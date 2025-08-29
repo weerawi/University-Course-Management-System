@@ -60,7 +60,7 @@ public class StudentService {
     // UPDATE student
     public StudentDTO updateStudent(Long id, StudentDTO studentDTO) {
         Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + id));
         
         student.setStudentId(studentDTO.getStudentId());
         student.setDepartment(studentDTO.getDepartment());
@@ -72,9 +72,14 @@ public class StudentService {
     
     // DELETE student
     public void deleteStudent(Long id) {
-        if (!studentRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Student not found with id: " + id);
-        }
+        Student student = studentRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + id));
+    
+        // Clear course relationships first
+        student.getCourses().clear();
+        studentRepository.save(student);
+        
+        // Now delete the student
         studentRepository.deleteById(id);
     }
     
@@ -95,20 +100,17 @@ public class StudentService {
     }
     
     private StudentDTO mapToDTO(Student student) {
-        StudentDTO dto = new StudentDTO();
-        dto.setId(student.getId());
-        dto.setStudentId(student.getStudentId());
-        dto.setFirstName(student.getUser().getFirstName());
-        dto.setLastName(student.getUser().getLastName());
-        dto.setEmail(student.getUser().getEmail());
-        dto.setDepartment(student.getDepartment());
-        dto.setYear(student.getYear());
-        if (student.getCourses() != null) {
-            dto.setEnrolledCourses(student.getCourses().size());
-        } else {
-            dto.setEnrolledCourses(0);
-        }
-        return dto;
+        return StudentDTO.builder()
+                .id(student.getId())
+                .studentId(student.getStudentId())
+                .firstName(student.getUser().getFirstName())
+                .lastName(student.getUser().getLastName())
+                .email(student.getUser().getEmail())
+                .department(student.getDepartment())
+                .year(student.getYear())
+                .userId(student.getUser().getId())
+                .enrolledCourses(student.getCourses() != null ? student.getCourses().size() : 0)
+                .build();
     }
     
     private CourseDTO mapCourseToDTO(Course course) {
@@ -116,14 +118,9 @@ public class StudentService {
         dto.setId(course.getId());
         dto.setCode(course.getCode());
         dto.setTitle(course.getTitle());
-        dto.setDescription(course.getDescription());
         dto.setCredits(course.getCredits());
-        dto.setCapacity(course.getCapacity());
-        dto.setEnrolledStudents(course.getStudents() != null ? course.getStudents().size() : 0);
-        if (course.getInstructor() != null) {
-            dto.setInstructorName(course.getInstructor().getFirstName() + " " + 
-                                 course.getInstructor().getLastName());
-        }
+        dto.setInstructorName(course.getInstructor() != null ? 
+            course.getInstructor().getFirstName() + " " + course.getInstructor().getLastName() : "TBA");
         return dto;
     }
 }
