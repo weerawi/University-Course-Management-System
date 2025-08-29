@@ -20,7 +20,7 @@ import { Loader2 } from 'lucide-react';
 const studentSchema = z.object({
   studentId: z.string().min(1, 'Student ID is required'),
   department: z.string().min(1, 'Department is required'),
-  year: z.number().int().min(1).max(6),
+  year: z.number().int().min(1).max(4),
   userId: z.number().optional(),
 });
 
@@ -127,7 +127,7 @@ export default function StudentForm({ initialData, isEditing = false, onSuccess 
           {...register('year', { valueAsNumber: true })}
           disabled={isLoading}
           min={1}
-          max={6}
+          max={4}
         />
         {errors.year && (
           <p className="text-sm text-red-500">{errors.year.message}</p>

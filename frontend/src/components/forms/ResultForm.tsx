@@ -22,6 +22,7 @@ const resultSchema = z.object({
   courseId: z.number().int().positive(),
   midtermScore: z.number().min(0).max(100),
   finalScore: z.number().min(0).max(100),
+  year: z.number().int().min(1).max(4), // Add year field
   semester: z.string().min(1, 'Semester is required'),
 });
 
@@ -36,9 +37,10 @@ export default function ResultForm({ initialData, onSuccess }: ResultFormProps) 
   const [isLoading, setIsLoading] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
-  const [semesters, setSemesters] = useState<string[]>([
-    'Fall 2023', 'Spring 2024', 'Summer 2024', 'Fall 2024'
-  ]);
+  
+  // Updated semester options with year-based structure
+  const yearOptions = [1, 2, 3, 4];
+  const semesterOptions = ['Semester 1', 'Semester 2'];
 
   const {
     register,
@@ -54,28 +56,35 @@ export default function ResultForm({ initialData, onSuccess }: ResultFormProps) 
       courseId: initialData.courseId,
       midtermScore: initialData.midtermScore,
       finalScore: initialData.finalScore,
+      year: initialData.year || 1,
       semester: initialData.semester,
     } : {
       midtermScore: 0,
       finalScore: 0,
-      semester: 'Fall 2024',
+      year: 1,
+      semester: 'Semester 1',
     },
   });
 
   const watchStudentId = watch('studentId');
   const watchCourseId = watch('courseId');
+  const watchYear = watch('year');
+  const watchSemester = watch('semester');
 
   useEffect(() => {
     fetchStudents();
     fetchCourses();
-    
+  }, []);
+
+  useEffect(() => {
     if (initialData) {
       reset({
         studentId: initialData.studentId,
         courseId: initialData.courseId,
         midtermScore: initialData.midtermScore,
         finalScore: initialData.finalScore,
-        semester: initialData.semester,
+        year: initialData.year || 1,
+        semester: initialData.semester || 'Semester 1',
       });
     }
   }, [initialData, reset]);
@@ -83,32 +92,53 @@ export default function ResultForm({ initialData, onSuccess }: ResultFormProps) 
   const fetchStudents = async () => {
     try {
       const response = await apiClient.get('/students');
+      console.log('Students fetched:', response.data);
       setStudents(response.data || []);
     } catch (error) {
       console.error('Error fetching students:', error);
+      setStudents([]);
     }
   };
 
   const fetchCourses = async () => {
     try {
       const response = await apiClient.get('/courses');
+      console.log('Courses fetched:', response.data);
       setCourses(response.data || []);
     } catch (error) {
       console.error('Error fetching courses:', error);
+      setCourses([]);
     }
   };
 
+  // ADD THE MISSING onSubmit FUNCTION
   const onSubmit = async (data: ResultFormData) => {
     setIsLoading(true);
     try {
+      console.log('Submitting result data:', data);
+      
       if (initialData?.id) {
+        // Update existing result
         await apiClient.put(`/results/${initialData.id}`, data);
       } else {
+        // Create new result
         await apiClient.post('/results', data);
       }
+      
+      console.log('Result saved successfully');
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving result:', error);
+      console.error('Error response:', error.response?.data);
+      
+      let errorMessage = 'Failed to save result';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -164,7 +194,56 @@ export default function ResultForm({ initialData, onSuccess }: ResultFormProps) 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Add Year and Semester Selection */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="year">Academic Year</Label>
+          <Select 
+            value={watchYear?.toString()} 
+            onValueChange={(value) => setValue('year', parseInt(value))}
+            disabled={isLoading}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select year" />
+            </SelectTrigger>
+            <SelectContent>
+              {yearOptions.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  Year {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.year && (
+            <p className="text-sm text-red-500">{errors.year.message}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="semester">Semester</Label>
+          <Select 
+            value={watchSemester || "Semester 1"} 
+            onValueChange={(value) => setValue('semester', value)}
+            disabled={isLoading}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select semester" />
+            </SelectTrigger>
+            <SelectContent>
+              {semesterOptions.map((sem) => (
+                <SelectItem key={sem} value={sem}>
+                  {sem}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.semester && (
+            <p className="text-sm text-red-500">{errors.semester.message}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="midtermScore">Midterm Score</Label>
           <Input
@@ -194,29 +273,6 @@ export default function ResultForm({ initialData, onSuccess }: ResultFormProps) 
           />
           {errors.finalScore && (
             <p className="text-sm text-red-500">{errors.finalScore.message}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="semester">Semester</Label>
-          <Select 
-            defaultValue={initialData?.semester || "Fall 2024"} 
-            onValueChange={(value) => setValue('semester', value)}
-            disabled={isLoading}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select semester" />
-            </SelectTrigger>
-            <SelectContent>
-              {semesters.map((sem) => (
-                <SelectItem key={sem} value={sem}>
-                  {sem}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.semester && (
-            <p className="text-sm text-red-500">{errors.semester.message}</p>
           )}
         </div>
       </div>
