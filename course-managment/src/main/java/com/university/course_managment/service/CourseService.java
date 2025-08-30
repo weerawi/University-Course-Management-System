@@ -5,7 +5,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.university.course_managment.dto.StudentDTO;
 import com.university.course_managment.dto.CourseDTO;
 import com.university.course_managment.dto.CreateCourseRequest;
 import com.university.course_managment.entity.Course;
@@ -142,5 +142,22 @@ public class CourseService {
         }
         
         return dto;
+    }
+
+    public List<StudentDTO> getCourseStudents(Long courseId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
+        
+        return course.getStudents().stream()
+                .map(student -> StudentDTO.builder()
+                        .id(student.getId())
+                        .studentId(student.getStudentId())
+                        .firstName(student.getUser().getFirstName())
+                        .lastName(student.getUser().getLastName())
+                        .email(student.getUser().getEmail())
+                        .department(student.getDepartment())
+                        .year(student.getYear())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

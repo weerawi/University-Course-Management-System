@@ -2,6 +2,7 @@ package com.university.course_managment.controller;
 
 import com.university.course_managment.dto.CourseDTO;
 import com.university.course_managment.dto.CreateCourseRequest;
+import com.university.course_managment.dto.StudentDTO;
 import com.university.course_managment.service.CourseService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -51,5 +52,11 @@ public class CourseController {
     public ResponseEntity<Void> deleteCourse(@PathVariable Long id) {
         courseService.deleteCourse(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/students")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('INSTRUCTOR')")
+    public ResponseEntity<List<StudentDTO>> getCourseStudents(@PathVariable Long id) {
+        return ResponseEntity.ok(courseService.getCourseStudents(id));
     }
 }

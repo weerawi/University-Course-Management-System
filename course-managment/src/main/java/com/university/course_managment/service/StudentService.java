@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.security.core.Authentication; 
 import com.university.course_managment.dto.CourseDTO;
 import com.university.course_managment.dto.StudentDTO;
 import com.university.course_managment.entity.Course;
@@ -183,4 +183,19 @@ public class StudentService {
         }
         return dto;
     }
+
+    public StudentDTO getStudentByUserId(Long userId) {
+    Student student = studentRepository.findByUserId(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found for user id: " + userId));
+    return mapToDTO(student);
+}
+
+public boolean isOwnProfile(Long studentId, Authentication authentication) {
+    if (authentication != null && authentication.getPrincipal() instanceof User) {
+        User user = (User) authentication.getPrincipal();
+        Student student = studentRepository.findById(studentId).orElse(null);
+        return student != null && student.getUser().getId().equals(user.getId());
+    }
+    return false;
+}
 }

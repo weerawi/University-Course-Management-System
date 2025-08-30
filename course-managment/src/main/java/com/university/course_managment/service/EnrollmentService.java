@@ -2,13 +2,11 @@ package com.university.course_managment.service;
 
 import com.university.course_managment.entity.Course;
 import com.university.course_managment.entity.Student;
-import com.university.course_managment.entity.User;
 import com.university.course_managment.exception.ResourceNotFoundException;
 import com.university.course_managment.repository.CourseRepository;
 import com.university.course_managment.repository.ResultRepository;
 import com.university.course_managment.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,11 +19,8 @@ public class EnrollmentService {
     private final ResultRepository resultRepository;
     
     @Transactional
-    public void enrollInCourse(Long courseId) {
-        User currentUser = (User) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
-        
-        Student student = studentRepository.findByUserId(currentUser.getId())
+    public void enrollInCourse(Long courseId, Long userId) {
+        Student student = studentRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student profile not found for user"));
         
         Course course = courseRepository.findById(courseId)
@@ -43,15 +38,15 @@ public class EnrollmentService {
         
         // Add enrollment
         student.getCourses().add(course);
+        course.getStudents().add(student);
+        
         studentRepository.save(student);
+        courseRepository.save(course);
     }
     
     @Transactional
-    public void dropCourse(Long courseId) {
-        User currentUser = (User) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
-        
-        Student student = studentRepository.findByUserId(currentUser.getId())
+    public void dropCourse(Long courseId, Long userId) {
+        Student student = studentRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student profile not found for user"));
         
         Course course = courseRepository.findById(courseId)
@@ -68,6 +63,9 @@ public class EnrollmentService {
         
         // Remove enrollment
         student.getCourses().remove(course);
+        course.getStudents().remove(student);
+        
         studentRepository.save(student);
+        courseRepository.save(course);
     }
 }

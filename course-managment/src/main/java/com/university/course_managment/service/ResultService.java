@@ -35,7 +35,12 @@ public class ResultService {
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
         
-        // Check if result already exists for this student, course, year, and semester
+        // Check if student is enrolled in the course
+        if (!student.getCourses().contains(course)) {
+            throw new RuntimeException("Student is not enrolled in this course");
+        }
+        
+        // Rest of the existing code...
         Optional<Result> existingResult = resultRepository.findByStudentAndCourseAndYearAndSemester(
                 student, course, request.getYear(), request.getSemester());
         
@@ -52,7 +57,6 @@ public class ResultService {
                 .semester(request.getSemester())
                 .build();
         
-        // Calculate total score and grade
         double total = (request.getMidtermScore() * 0.4) + (request.getFinalScore() * 0.6);
         result.setTotalScore(total);
         result.setGrade(calculateGrade(total));
