@@ -171,7 +171,7 @@ export default function StudentForm({ initialData, isEditing = false, onSuccess 
         <Label htmlFor="studentId">Student ID</Label>
         <Input
           id="studentId"
-          placeholder="e.g., STU001"
+          placeholder="e.g., CS19001"
           {...register('studentId')}
           disabled={isLoading || isEditing}
         />
@@ -213,7 +213,7 @@ export default function StudentForm({ initialData, isEditing = false, onSuccess 
               <Label htmlFor="firstName">First Name</Label>
               <Input
                 id="firstName"
-                placeholder="John"
+                placeholder="Tharindu"
                 {...register('firstName')}
                 disabled={isLoading || useExistingUser}
               />
@@ -226,7 +226,7 @@ export default function StudentForm({ initialData, isEditing = false, onSuccess 
               <Label htmlFor="lastName">Last Name</Label>
               <Input
                 id="lastName"
-                placeholder="Doe"
+                placeholder="Vinod"
                 {...register('lastName')}
                 disabled={isLoading || useExistingUser}
               />

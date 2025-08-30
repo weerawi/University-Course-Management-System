@@ -112,7 +112,7 @@ const onSubmit = async (data: any) => {
           <Label htmlFor="firstName">First Name</Label>
           <Input
             id="firstName"
-            placeholder="John"
+            placeholder="Tharindu"
             {...register('firstName')}
             disabled={isLoading}
           />
@@ -125,7 +125,7 @@ const onSubmit = async (data: any) => {
           <Label htmlFor="lastName">Last Name</Label>
           <Input
             id="lastName"
-            placeholder="Doe"
+            placeholder="Vinod"
             {...register('lastName')}
             disabled={isLoading}
           />
@@ -142,7 +142,7 @@ const onSubmit = async (data: any) => {
             <Input
               id="email"
               type="email"
-              placeholder="john.doe@example.com"
+              placeholder="tharindu@example.com"
               {...register('email')}
               disabled={isLoading}
             />
