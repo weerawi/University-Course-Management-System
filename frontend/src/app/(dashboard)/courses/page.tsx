@@ -75,10 +75,23 @@ export default function CoursesPage() {
 
   const handleEnroll = async (courseId: number) => {
     try {
+      // Get current student profile first
+      const studentProfile = await apiClient.get('/students/me');
+      
+      if (!studentProfile.data) {
+        alert('No student profile found. Please contact administrator.');
+        return;
+      }
+      
       await apiClient.post(`/students/enroll/${courseId}`);
-      fetchCourses(); // Refresh the list
-    } catch (error) {
+      alert('Successfully enrolled in course!');
+      fetchCourses();
+    } catch (error: any) {
       console.error('Error enrolling in course:', error);
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          'Failed to enroll in course';
+      alert(errorMessage);
     }
   };
   
@@ -214,6 +227,14 @@ export default function CoursesPage() {
                     {course.enrolledStudents >= course.capacity
                       ? 'Course Full'
                       : 'Enroll Now'}
+                  </Button>
+                )}
+                {user?.role === 'INSTRUCTOR' && course.instructorId === user.id && (
+                  <Button 
+                    className="w-full"
+                    onClick={() => router.push(`/courses/${course.id}`)}
+                  >
+                    View Details
                   </Button>
                 )}
                 {user?.role === 'ADMIN' && (

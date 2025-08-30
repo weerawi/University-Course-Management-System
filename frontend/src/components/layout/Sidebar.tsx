@@ -63,7 +63,7 @@ const Sidebar = () => {
   );
 
   return (
-    <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-200">
+    <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-200 overflow-y-auto">
       <div className="flex flex-col h-full">
         <nav className="flex-1 p-4">
           <ul className="space-y-2">

@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store/auth.store';
 import apiClient from '@/lib/api/client';
+import { useRouter } from 'next/navigation';
 import {
   Users,
   BookOpen,
@@ -18,6 +20,7 @@ export default function DashboardPage() {
   const user = useAuthStore((state) => state.user);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     fetchDashboardStats();
@@ -218,6 +221,72 @@ export default function DashboardPage() {
     </>
   );
 
+  // MOVED INSIDE COMPONENT - Now has access to stats and router
+  const renderInstructorDashboard = () => (
+    <>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">My Courses</CardTitle>
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.totalCourses || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Active courses
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.totalStudents || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Across all courses
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Class Size</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {stats?.totalCourses > 0 
+                ? Math.round(stats.totalStudents / stats.totalCourses) 
+                : 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Students per course
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <Button variant="outline" onClick={() => router.push('/courses')}>
+              View My Courses
+            </Button>
+            <Button variant="outline" onClick={() => router.push('/results')}>
+              Manage Results
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </>
+  );
+
   return (
     <div>
       <div className="mb-6">
@@ -270,8 +339,3 @@ const recentActivities = [
     time: '3 days ago',
   },
 ];
-
-const renderInstructorDashboard = () => {
-  // Similar implementation for instructor dashboard
-  return <div>Instructor Dashboard</div>;
-};

@@ -75,6 +75,11 @@ export default function ResultForm({ initialData, onSuccess }: ResultFormProps) 
     fetchStudents();
     fetchCourses();
   }, []);
+  useEffect(() => {
+    if (watchCourseId) {
+      fetchStudents();
+    }
+  }, [watchCourseId]);
 
   useEffect(() => {
     if (initialData) {
@@ -91,9 +96,17 @@ export default function ResultForm({ initialData, onSuccess }: ResultFormProps) 
 
   const fetchStudents = async () => {
     try {
-      const response = await apiClient.get('/students');
-      console.log('Students fetched:', response.data);
-      setStudents(response.data || []);
+      const currentUser = useAuthStore.getState().user;
+      
+      if (currentUser?.role === 'INSTRUCTOR' && watchCourseId) {
+        // Fetch only students enrolled in the selected course
+        const response = await apiClient.get(`/courses/${watchCourseId}/students`);
+        setStudents(response.data || []);
+      } else {
+        // Admin can see all students
+        const response = await apiClient.get('/students');
+        setStudents(response.data || []);
+      }
     } catch (error) {
       console.error('Error fetching students:', error);
       setStudents([]);
@@ -103,8 +116,17 @@ export default function ResultForm({ initialData, onSuccess }: ResultFormProps) 
   const fetchCourses = async () => {
     try {
       const response = await apiClient.get('/courses');
-      console.log('Courses fetched:', response.data);
-      setCourses(response.data || []);
+      let courses = response.data || [];
+      
+      // If user is instructor, filter to only their courses
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser?.role === 'INSTRUCTOR') {
+        courses = courses.filter((course: any) => 
+          course.instructorId === currentUser.id
+        );
+      }
+      
+      setCourses(courses);
     } catch (error) {
       console.error('Error fetching courses:', error);
       setCourses([]);
