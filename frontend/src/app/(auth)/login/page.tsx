@@ -335,12 +335,11 @@ export default function LoginPage() {
           </form>
           
           {/* Test Credentials */}
-          <div className="mt-4 p-3 bg-gray-50 rounded text-xs">
-            <p className="font-medium mb-1">Test Credentials:</p>
-            <p>Admin: admin@university.edu / admin123</p>
-            <p>Student: student@university.edu / student123</p>
-            <p>Instructor: instructor@university.edu / instructor123</p>
-          </div>
+        <div className="mt-4 p-3 bg-gray-50 rounded text-xs">
+          <p className="font-medium mb-1">Admin Login:</p>
+          <p>Email: admin@university.edu</p>
+          <p>Password: admin123</p>
+        </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <div className="text-sm text-center text-gray-600">

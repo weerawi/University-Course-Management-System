@@ -202,7 +202,9 @@ export default function CourseForm({ onSuccess, initialData }: CourseFormProps) 
               <SelectItem value="none">None</SelectItem>
               {instructors.map((instructor) => (
                 <SelectItem key={instructor.id} value={instructor.id.toString()}>
-                  {instructor.firstName} {instructor.lastName}
+                  {instructor.firstName.startsWith('Dr') 
+                    ? `${instructor.firstName} ${instructor.lastName}` 
+                    : `Dr. ${instructor.firstName} ${instructor.lastName}`}
                 </SelectItem>
               ))}
             </SelectContent>

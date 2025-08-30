@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import apiClient from '@/lib/api/client';
+import { useAuthStore } from '@/lib/store/auth.store'; // Add this import
 import { Loader2 } from 'lucide-react';
 
 const resultSchema = z.object({
@@ -22,7 +23,7 @@ const resultSchema = z.object({
   courseId: z.number().int().positive(),
   midtermScore: z.number().min(0).max(100),
   finalScore: z.number().min(0).max(100),
-  year: z.number().int().min(1).max(4), // Add year field
+  year: z.number().int().min(1).max(4),
   semester: z.string().min(1, 'Semester is required'),
 });
 
@@ -37,8 +38,8 @@ export default function ResultForm({ initialData, onSuccess }: ResultFormProps) 
   const [isLoading, setIsLoading] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
+  const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
   
-  // Updated semester options with year-based structure
   const yearOptions = [1, 2, 3, 4];
   const semesterOptions = ['Semester 1', 'Semester 2'];
 
@@ -66,18 +67,15 @@ export default function ResultForm({ initialData, onSuccess }: ResultFormProps) 
     },
   });
 
-  const watchStudentId = watch('studentId');
   const watchCourseId = watch('courseId');
-  const watchYear = watch('year');
-  const watchSemester = watch('semester');
 
   useEffect(() => {
-    fetchStudents();
     fetchCourses();
   }, []);
+
   useEffect(() => {
     if (watchCourseId) {
-      fetchStudents();
+      fetchEnrolledStudents(watchCourseId);
     }
   }, [watchCourseId]);
 
@@ -94,22 +92,14 @@ export default function ResultForm({ initialData, onSuccess }: ResultFormProps) 
     }
   }, [initialData, reset]);
 
-  const fetchStudents = async () => {
+  const fetchEnrolledStudents = async (courseId: number) => {
     try {
-      const currentUser = useAuthStore.getState().user;
-      
-      if (currentUser?.role === 'INSTRUCTOR' && watchCourseId) {
-        // Fetch only students enrolled in the selected course
-        const response = await apiClient.get(`/courses/${watchCourseId}/students`);
-        setStudents(response.data || []);
-      } else {
-        // Admin can see all students
-        const response = await apiClient.get('/students');
-        setStudents(response.data || []);
-      }
+      // Fetch only students enrolled in the selected course
+      const response = await apiClient.get(`/courses/${courseId}/students`);
+      setEnrolledStudents(response.data || []);
     } catch (error) {
-      console.error('Error fetching students:', error);
-      setStudents([]);
+      console.error('Error fetching enrolled students:', error);
+      setEnrolledStudents([]);
     }
   };
 
@@ -133,7 +123,6 @@ export default function ResultForm({ initialData, onSuccess }: ResultFormProps) 
     }
   };
 
-  // ADD THE MISSING onSubmit FUNCTION
   const onSubmit = async (data: ResultFormData) => {
     setIsLoading(true);
     try {
@@ -170,32 +159,9 @@ export default function ResultForm({ initialData, onSuccess }: ResultFormProps) 
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="studentId">Student</Label>
-          <Select 
-            value={watchStudentId?.toString()} 
-            onValueChange={(value) => setValue('studentId', parseInt(value))}
-            disabled={isLoading || !!initialData}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select student" />
-            </SelectTrigger>
-            <SelectContent>
-              {students.map((student) => (
-                <SelectItem key={student.id} value={student.id.toString()}>
-                  {student.firstName} {student.lastName} ({student.studentId})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.studentId && (
-            <p className="text-sm text-red-500">{errors.studentId.message}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
           <Label htmlFor="courseId">Course</Label>
           <Select 
-            value={watchCourseId?.toString()} 
+            value={watch('courseId')?.toString()} 
             onValueChange={(value) => setValue('courseId', parseInt(value))}
             disabled={isLoading || !!initialData}
           >
@@ -214,14 +180,43 @@ export default function ResultForm({ initialData, onSuccess }: ResultFormProps) 
             <p className="text-sm text-red-500">{errors.courseId.message}</p>
           )}
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="studentId">Student</Label>
+          <Select 
+            value={watch('studentId')?.toString()} 
+            onValueChange={(value) => setValue('studentId', parseInt(value))}
+            disabled={isLoading || !!initialData || !watchCourseId}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={watchCourseId ? "Select student" : "Select course first"} />
+            </SelectTrigger>
+            <SelectContent>
+              {enrolledStudents.length === 0 ? (
+                <SelectItem value="none" disabled>
+                  No students enrolled in this course
+                </SelectItem>
+              ) : (
+                enrolledStudents.map((student) => (
+                  <SelectItem key={student.id} value={student.id.toString()}>
+                    {student.firstName} {student.lastName} ({student.studentId})
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+          {errors.studentId && (
+            <p className="text-sm text-red-500">{errors.studentId.message}</p>
+          )}
+        </div>
       </div>
 
-      {/* Add Year and Semester Selection */}
+      {/* Year and Semester Selection */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="year">Academic Year</Label>
           <Select 
-            value={watchYear?.toString()} 
+            value={watch('year')?.toString()} 
             onValueChange={(value) => setValue('year', parseInt(value))}
             disabled={isLoading}
           >
@@ -244,7 +239,7 @@ export default function ResultForm({ initialData, onSuccess }: ResultFormProps) 
         <div className="space-y-2">
           <Label htmlFor="semester">Semester</Label>
           <Select 
-            value={watchSemester || "Semester 1"} 
+            value={watch('semester') || "Semester 1"} 
             onValueChange={(value) => setValue('semester', value)}
             disabled={isLoading}
           >
@@ -303,7 +298,7 @@ export default function ResultForm({ initialData, onSuccess }: ResultFormProps) 
         <Button type="button" variant="outline" onClick={() => onSuccess()}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading || (watchCourseId && enrolledStudents.length === 0)}>
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

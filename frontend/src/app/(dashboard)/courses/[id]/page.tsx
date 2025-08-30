@@ -38,12 +38,19 @@ export default function CourseDetailsPage() {
   const fetchCourseDetails = async () => {
     try {
       setLoading(true);
-      const [courseRes, studentsRes] = await Promise.all([
-        apiClient.get(`/courses/${params.id}`),
-        apiClient.get(`/courses/${params.id}/students`)
-      ]);
+      const courseRes = await apiClient.get(`/courses/${params.id}`);
       setCourse(courseRes.data);
-      setStudents(studentsRes.data || []);
+      
+      // Only fetch students if admin or instructor
+      if (user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') {
+        try {
+          const studentsRes = await apiClient.get(`/courses/${params.id}/students`);
+          setStudents(studentsRes.data || []);
+        } catch (error) {
+          console.log('Students data not available');
+          setStudents([]);
+        }
+      }
     } catch (error) {
       console.error('Error fetching course details:', error);
     } finally {
@@ -110,56 +117,79 @@ export default function CourseDetailsPage() {
         </Card>
       </div>
 
-      <Card>
+      {/* Course Description for all users */}
+      <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Enrolled Students</CardTitle>
-          <CardDescription>
-            Students currently enrolled in this course
-          </CardDescription>
+          <CardTitle>Course Description</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Student ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Year</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {students.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-6">
-                    No students enrolled yet
-                  </TableCell>
-                </TableRow>
-              ) : (
-                students.map((student) => (
-                  <TableRow key={student.id}>
-                    <TableCell>{student.studentId}</TableCell>
-                    <TableCell>
-                      {student.firstName} {student.lastName}
-                    </TableCell>
-                    <TableCell>{student.department}</TableCell>
-                    <TableCell>Year {student.year}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.push(`/results?student=${student.id}&course=${course.id}`)}
-                      >
-                        View Results
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <p className="text-gray-600">
+            {course?.description || 'No description available'}
+          </p>
+          {course?.instructorName && (
+            <div className="mt-4 p-3 bg-gray-50 rounded">
+              <p className="text-sm font-medium">Instructor</p>
+              <p className="text-lg">{course.instructorName}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Only show enrolled students for admin and instructor */}
+      {(user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Enrolled Students</CardTitle>
+            <CardDescription>
+              Students currently enrolled in this course
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Student ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Year</TableHead>
+                  {(user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') && (
+                    <TableHead>Actions</TableHead>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {students.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-6">
+                      No students enrolled yet
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  students.map((student) => (
+                    <TableRow key={student.id}>
+                      <TableCell>{student.studentId}</TableCell>
+                      <TableCell>
+                        {student.firstName} {student.lastName}
+                      </TableCell>
+                      <TableCell>{student.department}</TableCell>
+                      <TableCell>Year {student.year}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/results?student=${student.id}&course=${course.id}`)}
+                        >
+                          View Results
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

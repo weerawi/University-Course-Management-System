@@ -307,19 +307,18 @@ export default function DashboardPage() {
 
 // Mock data for charts
 const mockEnrollmentData = [
-  { month: 'Jan', students: 150 },
-  { month: 'Feb', students: 180 },
-  { month: 'Mar', students: 200 },
-  { month: 'Apr', students: 190 },
-  { month: 'May', students: 220 },
-  { month: 'Jun', students: 250 },
+  { month: 'Jan', students: 0 },
+  { month: 'Feb', students: 0 },
+  { month: 'Mar', students: 0 },
+  { month: 'Apr', students: 0 },
+  { month: 'May', students: 0 },
+  { month: 'Jun', students: 0 },
 ];
 
 const mockDepartmentData = [
-  { department: 'CS', students: 120 },
-  { department: 'IT', students: 90 },
-  { department: 'SE', students: 85 },
-  { department: 'DS', students: 65 },
+  { department: 'CS', students: 2 },
+  { department: 'ET', students: 0 },
+  { department: 'CT', students: 0 }, 
 ];
 
 const recentActivities = [

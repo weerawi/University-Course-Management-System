@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';  
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -32,7 +33,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/lib/store/auth.store';
 import apiClient from '@/lib/api/client';
-import { Plus, Search, Users, Clock, BookOpen, Trash, Edit } from 'lucide-react';
+import { Plus, Search, Users, Clock, BookOpen, Trash, Edit, Eye, Check } from 'lucide-react';
 import CourseForm from '@/components/forms/CourseForm';
 
 interface Course {
@@ -48,8 +49,10 @@ interface Course {
 }
 
 export default function CoursesPage() {
+  const router = useRouter(); // Add router initialization
   const user = useAuthStore((state) => state.user);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -59,7 +62,10 @@ export default function CoursesPage() {
 
   useEffect(() => {
     fetchCourses();
-  }, []);
+    if (user?.role === 'STUDENT') {
+      fetchEnrolledCourses();
+    }
+  }, [user]);
 
   const fetchCourses = async () => {
     try {
@@ -73,24 +79,47 @@ export default function CoursesPage() {
     }
   };
 
+  const fetchEnrolledCourses = async () => {
+    try {
+      const studentProfile = await apiClient.get('/students/me');
+      if (studentProfile.data && studentProfile.data.id) {
+        const coursesResponse = await apiClient.get(`/students/${studentProfile.data.id}/courses`);
+        const enrolledIds = coursesResponse.data.map((course: any) => course.id);
+        setEnrolledCourses(enrolledIds);
+      }
+    } catch (error) {
+      console.error('Error fetching enrolled courses:', error);
+    }
+  };
+
   const handleEnroll = async (courseId: number) => {
     try {
-      // Get current student profile first
-      const studentProfile = await apiClient.get('/students/me');
-      
-      if (!studentProfile.data) {
-        alert('No student profile found. Please contact administrator.');
-        return;
-      }
-      
       await apiClient.post(`/students/enroll/${courseId}`);
       alert('Successfully enrolled in course!');
       fetchCourses();
+      fetchEnrolledCourses();
     } catch (error: any) {
       console.error('Error enrolling in course:', error);
       const errorMessage = error.response?.data?.message || 
                           error.response?.data?.error || 
                           'Failed to enroll in course';
+      alert(errorMessage);
+    }
+  };
+
+  const handleUnenroll = async (courseId: number) => {
+    if (!confirm('Are you sure you want to drop this course?')) return;
+    
+    try {
+      await apiClient.delete(`/students/drop/${courseId}`);
+      alert('Successfully dropped the course!');
+      fetchCourses();
+      fetchEnrolledCourses();
+    } catch (error: any) {
+      console.error('Error dropping course:', error);
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          'Failed to drop course';
       alert(errorMessage);
     }
   };
@@ -111,6 +140,7 @@ export default function CoursesPage() {
       setSelectedCourse(null);
     } catch (error) {
       console.error('Error deleting course:', error);
+      alert('Cannot delete course. Please remove all enrollments and results first.');
     }
   };
 
@@ -124,6 +154,8 @@ export default function CoursesPage() {
       course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const isEnrolled = (courseId: number) => enrolledCourses.includes(courseId);
 
   return (
     <div>
@@ -215,32 +247,70 @@ export default function CoursesPage() {
                     <Users className="h-4 w-4 mr-2" />
                     {course.enrolledStudents}/{course.capacity} Students
                   </div>
+                  {user?.role === 'STUDENT' && isEnrolled(course.id) && (
+                    <div className="flex items-center text-sm text-green-600">
+                      <Check className="h-4 w-4 mr-2" />
+                      Enrolled
+                    </div>
+                  )}
                 </div>
               </CardContent>
               <CardFooter>
                 {user?.role === 'STUDENT' && (
-                  <Button
-                    className="w-full"
-                    onClick={() => handleEnroll(course.id)}
-                    disabled={course.enrolledStudents >= course.capacity}
-                  >
-                    {course.enrolledStudents >= course.capacity
-                      ? 'Course Full'
-                      : 'Enroll Now'}
-                  </Button>
+                  <div className="flex gap-2 w-full">
+                    {isEnrolled(course.id) ? (
+                      <>
+                        <Button
+                          className="flex-1"
+                          onClick={() => router.push(`/courses/${course.id}`)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => handleUnenroll(course.id)}
+                        >
+                          Drop Course
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        className="w-full"
+                        onClick={() => handleEnroll(course.id)}
+                        disabled={course.enrolledStudents >= course.capacity}
+                      >
+                        {course.enrolledStudents >= course.capacity
+                          ? 'Course Full'
+                          : 'Enroll Now'}
+                      </Button>
+                    )}
+                  </div>
                 )}
+                
                 {user?.role === 'INSTRUCTOR' && course.instructorId === user.id && (
                   <Button 
                     className="w-full"
                     onClick={() => router.push(`/courses/${course.id}`)}
                   >
-                    View Details
+                    <Eye className="h-4 w-4 mr-2" />
+                    View My Course
                   </Button>
                 )}
+                
                 {user?.role === 'ADMIN' && (
                   <div className="flex gap-2 w-full">
                     <Button 
                       variant="outline" 
+                      size="sm"
+                      onClick={() => router.push(`/courses/${course.id}`)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
                       className="flex-1"
                       onClick={() => handleEdit(course)}
                     >
@@ -248,10 +318,10 @@ export default function CoursesPage() {
                     </Button>
                     <Button 
                       variant="destructive" 
-                      className="flex-1"
+                      size="sm"
                       onClick={() => openDeleteDialog(course)}
                     >
-                      <Trash className="h-4 w-4 mr-2" /> Delete
+                      <Trash className="h-4 w-4" />
                     </Button>
                   </div>
                 )}
