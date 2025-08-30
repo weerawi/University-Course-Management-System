@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.university.course_managment.dto.CreateUserRequest;
 import com.university.course_managment.dto.UpdateUserRequest;
 import com.university.course_managment.dto.UserDTO;
+import com.university.course_managment.entity.Course;
 import com.university.course_managment.entity.Student;
 import com.university.course_managment.entity.User;
 import com.university.course_managment.entity.User.Role;
@@ -105,17 +106,35 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         
+        // Check if this is the last admin
+        if (user.getRole() == Role.ADMIN) {
+            long adminCount = userRepository.findAll().stream()
+                    .filter(u -> u.getRole() == Role.ADMIN)
+                    .count();
+            if (adminCount <= 1) {
+                throw new RuntimeException("Cannot delete the last admin user");
+            }
+        }
+        
         // Check dependencies
         if (user.getRole() == Role.STUDENT) {
-            Student student = studentRepository.findByUserId(id).orElse(null);
-            if (student != null) {
-                throw new RuntimeException("Cannot delete user. User has a student profile. Delete the student first.");
+            // Delete student profile first if exists
+            Optional<Student> student = studentRepository.findByUserId(id);
+            if (student.isPresent()) {
+                // Clear enrollments first
+                student.get().getCourses().clear();
+                studentRepository.save(student.get());
+                // Delete student profile
+                studentRepository.delete(student.get());
             }
         }
         
         if (user.getRole() == Role.INSTRUCTOR) {
-            if (!courseRepository.findByInstructor(user).isEmpty()) {
-                throw new RuntimeException("Cannot delete user. User is assigned to courses.");
+            // Remove instructor from courses
+            List<Course> courses = courseRepository.findByInstructor(user);
+            for (Course course : courses) {
+                course.setInstructor(null);
+                courseRepository.save(course);
             }
         }
         

@@ -1,22 +1,16 @@
-package com.university.course_managment.controller; 
+package com.university.course_managment.controller;
 
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
 
 import com.university.course_managment.dto.CreateResultRequest;
 import com.university.course_managment.dto.ResultDTO;
+import com.university.course_managment.entity.User;
 import com.university.course_managment.service.ResultService;
 
 import jakarta.validation.Valid;
@@ -47,6 +41,14 @@ public class ResultController {
     @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
     public ResponseEntity<List<ResultDTO>> getCourseResults(@PathVariable Long courseId) {
         return ResponseEntity.ok(resultService.getCourseResults(courseId));
+    }
+    
+    // Add instructor endpoint
+    @GetMapping("/instructor")
+    @PreAuthorize("hasRole('INSTRUCTOR')")
+    public ResponseEntity<List<ResultDTO>> getInstructorResults(Authentication authentication) {
+        User instructor = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(resultService.getResultsByInstructor(instructor.getId()));
     }
     
     @PutMapping("/{id}")

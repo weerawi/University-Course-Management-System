@@ -1,5 +1,6 @@
-package com.university.course_managment.service; 
+package com.university.course_managment.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -12,10 +13,12 @@ import com.university.course_managment.dto.ResultDTO;
 import com.university.course_managment.entity.Course;
 import com.university.course_managment.entity.Result;
 import com.university.course_managment.entity.Student;
+import com.university.course_managment.entity.User; 
 import com.university.course_managment.exception.ResourceNotFoundException;
 import com.university.course_managment.repository.CourseRepository;
 import com.university.course_managment.repository.ResultRepository;
 import com.university.course_managment.repository.StudentRepository;
+import com.university.course_managment.repository.UserRepository;  
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,6 +29,7 @@ public class ResultService {
     private final ResultRepository resultRepository;
     private final StudentRepository studentRepository;
     private final CourseRepository courseRepository;
+    private final UserRepository userRepository;
     
     @Transactional
     public ResultDTO createResult(CreateResultRequest request) {
@@ -164,6 +168,24 @@ public class ResultService {
     public List<ResultDTO> getResultsByCourseId(Long courseId) {
         return resultRepository.findAll().stream()
                 .filter(result -> result.getCourse().getId().equals(courseId))
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    public List<ResultDTO> getResultsByInstructor(Long instructorId) {
+        // Get all courses taught by this instructor
+        User instructor = userRepository.findById(instructorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Instructor not found"));
+        
+        List<Course> instructorCourses = courseRepository.findByInstructor(instructor);
+        
+        // Get all results for these courses
+        List<Result> results = new ArrayList<>();
+        for (Course course : instructorCourses) {
+            results.addAll(resultRepository.findByCourse(course));
+        }
+        
+        return results.stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }

@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.university.course_managment.dto.CourseDTO;
 import com.university.course_managment.dto.StudentDTO;
+import com.university.course_managment.entity.Student;
 import com.university.course_managment.entity.User;
 import com.university.course_managment.service.EnrollmentService;
 import com.university.course_managment.service.StudentService;
@@ -108,4 +109,42 @@ public class StudentController {
         StudentDTO student = studentService.getStudentByUserId(currentUser.getId());
         return ResponseEntity.ok(student);
     }
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<StudentDTO> getCurrentStudentProfile(Authentication authentication) {
+        User currentUser = (User) authentication.getPrincipal();
+        
+        // Try to find student profile
+        Optional<Student> studentOpt = studentRepository.findByUserId(currentUser.getId());
+        
+        if (studentOpt.isEmpty()) {
+            // Create a basic student profile if it doesn't exist
+            Student newStudent = Student.builder()
+                    .studentId("STU" + String.format("%05d", currentUser.getId()))
+                    .user(currentUser)
+                    .department("General Studies")
+                    .year(1)
+                    .build();
+            Student saved = studentRepository.save(newStudent);
+            return ResponseEntity.ok(mapStudentToDTO(saved));
+        }
+        
+        return ResponseEntity.ok(mapStudentToDTO(studentOpt.get()));
+    }
+
+    private StudentDTO mapStudentToDTO(Student student) {
+        return StudentDTO.builder()
+                .id(student.getId())
+                .studentId(student.getStudentId())
+                .firstName(student.getUser().getFirstName())
+                .lastName(student.getUser().getLastName())
+                .email(student.getUser().getEmail())
+                .department(student.getDepartment())
+                .year(student.getYear())
+                .userId(student.getUser().getId())
+                .enrolledCourses(student.getCourses() != null ? student.getCourses().size() : 0)
+                .build();
+    }
+
 }
