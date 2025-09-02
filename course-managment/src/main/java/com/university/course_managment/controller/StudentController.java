@@ -1,6 +1,7 @@
 package com.university.course_managment.controller;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,20 +21,28 @@ import com.university.course_managment.dto.CourseDTO;
 import com.university.course_managment.dto.StudentDTO;
 import com.university.course_managment.entity.Student;
 import com.university.course_managment.entity.User;
+import com.university.course_managment.repository.StudentRepository;
 import com.university.course_managment.service.EnrollmentService;
 import com.university.course_managment.service.StudentService;
 
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/students")
-@RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:3000")
 public class StudentController {
     
     private final EnrollmentService enrollmentService;
     private final StudentService studentService;
+    private final StudentRepository studentRepository;
+
+    public StudentController(EnrollmentService enrollmentService, 
+                           StudentService studentService,
+                           StudentRepository studentRepository) {
+        this.enrollmentService = enrollmentService;
+        this.studentService = studentService;
+        this.studentRepository = studentRepository;
+    }
     
     // GET all students - Admin only
     @GetMapping
@@ -106,14 +115,6 @@ public class StudentController {
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<StudentDTO> getCurrentStudentProfile(Authentication authentication) {
         User currentUser = (User) authentication.getPrincipal();
-        StudentDTO student = studentService.getStudentByUserId(currentUser.getId());
-        return ResponseEntity.ok(student);
-    }
-
-    @GetMapping("/me")
-    @PreAuthorize("hasRole('STUDENT')")
-    public ResponseEntity<StudentDTO> getCurrentStudentProfile(Authentication authentication) {
-        User currentUser = (User) authentication.getPrincipal();
         
         // Try to find student profile
         Optional<Student> studentOpt = studentRepository.findByUserId(currentUser.getId());
@@ -146,5 +147,4 @@ public class StudentController {
                 .enrolledCourses(student.getCourses() != null ? student.getCourses().size() : 0)
                 .build();
     }
-
 }

@@ -8,13 +8,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.university.course_managment.entity.User;
 import com.university.course_managment.repository.UserRepository;
 
-import lombok.RequiredArgsConstructor;
-
 @Configuration
-@RequiredArgsConstructor
 public class DataInitializer {
     
     private final PasswordEncoder passwordEncoder;
+
+    public DataInitializer(PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
     
     @Bean
     CommandLineRunner init(UserRepository userRepository) {

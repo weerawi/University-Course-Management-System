@@ -1,6 +1,5 @@
 package com.university.course_managment.service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -13,23 +12,31 @@ import com.university.course_managment.dto.ResultDTO;
 import com.university.course_managment.entity.Course;
 import com.university.course_managment.entity.Result;
 import com.university.course_managment.entity.Student;
-import com.university.course_managment.entity.User; 
+import com.university.course_managment.entity.User;
 import com.university.course_managment.exception.ResourceNotFoundException;
 import com.university.course_managment.repository.CourseRepository;
 import com.university.course_managment.repository.ResultRepository;
 import com.university.course_managment.repository.StudentRepository;
-import com.university.course_managment.repository.UserRepository;  
-
-import lombok.RequiredArgsConstructor;
+import com.university.course_managment.repository.UserRepository;
 
 @Service
-@RequiredArgsConstructor
 public class ResultService {
     
     private final ResultRepository resultRepository;
     private final StudentRepository studentRepository;
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
+
+    // Constructor injection instead of @RequiredArgsConstructor
+    public ResultService(ResultRepository resultRepository,
+                        StudentRepository studentRepository,
+                        CourseRepository courseRepository,
+                        UserRepository userRepository) {
+        this.resultRepository = resultRepository;
+        this.studentRepository = studentRepository;
+        this.courseRepository = courseRepository;
+        this.userRepository = userRepository;
+    }
     
     @Transactional
     public ResultDTO createResult(CreateResultRequest request) {
@@ -44,12 +51,12 @@ public class ResultService {
             throw new RuntimeException("Student is not enrolled in this course");
         }
         
-        // Rest of the existing code...
+        // Check if result already exists for this student, course, year, and semester
         Optional<Result> existingResult = resultRepository.findByStudentAndCourseAndYearAndSemester(
                 student, course, request.getYear(), request.getSemester());
         
         if (existingResult.isPresent()) {
-            throw new RuntimeException("Result already exists for this student, course, year, and semester");
+            throw new RuntimeException("Result already exists for this student in this course for the specified year and semester");
         }
         
         Result result = Result.builder()
@@ -61,6 +68,7 @@ public class ResultService {
                 .semester(request.getSemester())
                 .build();
         
+        // Calculate total and grade
         double total = (request.getMidtermScore() * 0.4) + (request.getFinalScore() * 0.6);
         result.setTotalScore(total);
         result.setGrade(calculateGrade(total));
@@ -97,6 +105,7 @@ public class ResultService {
         result.setYear(request.getYear());
         result.setSemester(request.getSemester());
         
+        // Recalculate total and grade
         double total = (request.getMidtermScore() * 0.4) + (request.getFinalScore() * 0.6);
         result.setTotalScore(total);
         result.setGrade(calculateGrade(total));
@@ -105,7 +114,47 @@ public class ResultService {
         return mapToDTO(result);
     }
     
-    // Fix the incomplete calculateGrade method
+    public List<ResultDTO> getAllResults() {
+        return resultRepository.findAll().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public ResultDTO getResultById(Long id) {
+        Result result = resultRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Result not found with id: " + id));
+        return mapToDTO(result);
+    }
+
+    @Transactional
+    public void deleteResult(Long id) {
+        if (!resultRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Result not found with id: " + id);
+        }
+        resultRepository.deleteById(id);
+    }
+
+    public List<ResultDTO> getResultsByStudentId(Long studentId) {
+        return getStudentResults(studentId);
+    }
+
+    public List<ResultDTO> getResultsByCourseId(Long courseId) {
+        return getCourseResults(courseId);
+    }
+    
+    public List<ResultDTO> getResultsByInstructor(Long instructorId) {
+        User instructor = userRepository.findById(instructorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Instructor not found"));
+        
+        List<Course> instructorCourses = courseRepository.findByInstructor(instructor);
+        
+        return instructorCourses.stream()
+                .flatMap(course -> resultRepository.findByCourse(course).stream())
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    // Fixed calculateGrade method
     private String calculateGrade(double score) {
         if (score >= 85) return "A+";
         else if (score >= 70) return "A";
@@ -136,57 +185,5 @@ public class ResultService {
         dto.setYear(result.getYear());
         dto.setSemester(result.getSemester());
         return dto;
-    }
-
-    public List<ResultDTO> getAllResults() {
-        return resultRepository.findAll().stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
-    }
-
-    public ResultDTO getResultById(Long id) {
-        Result result = resultRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Result not found with id: " + id));
-        return mapToDTO(result);
-    }
-
-    @Transactional
-    public void deleteResult(Long id) {
-        if (!resultRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Result not found with id: " + id);
-        }
-        resultRepository.deleteById(id);
-    }
-
-    public List<ResultDTO> getResultsByStudentId(Long studentId) {
-        return resultRepository.findAll().stream()
-                .filter(result -> result.getStudent().getId().equals(studentId))
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
-    }
-
-    public List<ResultDTO> getResultsByCourseId(Long courseId) {
-        return resultRepository.findAll().stream()
-                .filter(result -> result.getCourse().getId().equals(courseId))
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
-    }
-    
-    public List<ResultDTO> getResultsByInstructor(Long instructorId) {
-        // Get all courses taught by this instructor
-        User instructor = userRepository.findById(instructorId)
-                .orElseThrow(() -> new ResourceNotFoundException("Instructor not found"));
-        
-        List<Course> instructorCourses = courseRepository.findByInstructor(instructor);
-        
-        // Get all results for these courses
-        List<Result> results = new ArrayList<>();
-        for (Course course : instructorCourses) {
-            results.addAll(resultRepository.findByCourse(course));
-        }
-        
-        return results.stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
     }
 }

@@ -1,4 +1,4 @@
-package com.university.course_managment.service; 
+package com.university.course_managment.service;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -16,10 +16,7 @@ import com.university.course_managment.repository.StudentRepository;
 import com.university.course_managment.repository.UserRepository;
 import com.university.course_managment.security.JwtService;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class AuthService {
     
     private final UserRepository userRepository;
@@ -27,6 +24,18 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+
+    public AuthService(UserRepository userRepository, 
+                      StudentRepository studentRepository,
+                      PasswordEncoder passwordEncoder, 
+                      JwtService jwtService,
+                      AuthenticationManager authenticationManager) {
+        this.userRepository = userRepository;
+        this.studentRepository = studentRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+        this.authenticationManager = authenticationManager;
+    }
     
     @Transactional
     public AuthResponse register(RegisterRequest request) {

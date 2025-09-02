@@ -1,11 +1,10 @@
-package com.university.course_managment.controller; 
+package com.university.course_managment.controller;
 
 import com.university.course_managment.dto.CourseDTO;
 import com.university.course_managment.dto.CreateCourseRequest;
 import com.university.course_managment.dto.StudentDTO;
 import com.university.course_managment.service.CourseService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,11 +14,14 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/courses")
-@RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:3000")
 public class CourseController {
     
     private final CourseService courseService;
+
+    public CourseController(CourseService courseService) {
+        this.courseService = courseService;
+    }
     
     @GetMapping
     public ResponseEntity<List<CourseDTO>> getAllCourses() {

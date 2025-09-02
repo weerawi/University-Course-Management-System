@@ -1,6 +1,7 @@
 package com.university.course_managment.service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,16 +20,21 @@ import com.university.course_managment.repository.CourseRepository;
 import com.university.course_managment.repository.StudentRepository;
 import com.university.course_managment.repository.UserRepository;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
     private final CourseRepository courseRepository;
     private final PasswordEncoder passwordEncoder;
+
+    public UserService(UserRepository userRepository, StudentRepository studentRepository,
+                      CourseRepository courseRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.studentRepository = studentRepository;
+        this.courseRepository = courseRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     public List<UserDTO> getAllUsers() {
         return userRepository.findAll().stream()

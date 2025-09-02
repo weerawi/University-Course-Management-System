@@ -5,11 +5,11 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.university.course_managment.dto.StudentDTO;
+
 import com.university.course_managment.dto.CourseDTO;
 import com.university.course_managment.dto.CreateCourseRequest;
+import com.university.course_managment.dto.StudentDTO;
 import com.university.course_managment.entity.Course;
-import com.university.course_managment.entity.Student;
 import com.university.course_managment.entity.User;
 import com.university.course_managment.exception.ResourceNotFoundException;
 import com.university.course_managment.repository.CourseRepository;
@@ -17,16 +17,23 @@ import com.university.course_managment.repository.ResultRepository;
 import com.university.course_managment.repository.StudentRepository;
 import com.university.course_managment.repository.UserRepository;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class CourseService {
     
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
     private final ResultRepository resultRepository;
+
+    public CourseService(CourseRepository courseRepository, 
+                        UserRepository userRepository,
+                        StudentRepository studentRepository, 
+                        ResultRepository resultRepository) {
+        this.courseRepository = courseRepository;
+        this.userRepository = userRepository;
+        this.studentRepository = studentRepository;
+        this.resultRepository = resultRepository;
+    }
     
     @Transactional
     public CourseDTO createCourse(CreateCourseRequest request) {

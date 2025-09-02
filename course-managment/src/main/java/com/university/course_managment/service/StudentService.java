@@ -3,10 +3,11 @@ package com.university.course_managment.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.core.Authentication; 
+
 import com.university.course_managment.dto.CourseDTO;
 import com.university.course_managment.dto.StudentDTO;
 import com.university.course_managment.entity.Course;
@@ -18,11 +19,7 @@ import com.university.course_managment.repository.ResultRepository;
 import com.university.course_managment.repository.StudentRepository;
 import com.university.course_managment.repository.UserRepository;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
-@Transactional
 public class StudentService {
     
     private final StudentRepository studentRepository;
@@ -30,6 +27,19 @@ public class StudentService {
     private final UserRepository userRepository;
     private final ResultRepository resultRepository;
     private final PasswordEncoder passwordEncoder;
+
+    // Constructor injection instead of @RequiredArgsConstructor
+    public StudentService(StudentRepository studentRepository,
+                         CourseRepository courseRepository,
+                         UserRepository userRepository,
+                         ResultRepository resultRepository,
+                         PasswordEncoder passwordEncoder) {
+        this.studentRepository = studentRepository;
+        this.courseRepository = courseRepository;
+        this.userRepository = userRepository;
+        this.resultRepository = resultRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
     
     public List<StudentDTO> getAllStudents() {
         return studentRepository.findAll().stream()
@@ -47,7 +57,7 @@ public class StudentService {
     public StudentDTO createStudent(StudentDTO studentDTO) {
         // Check if studentId already exists
         if (studentRepository.existsByStudentId(studentDTO.getStudentId())) {
-            throw new RuntimeException("Student ID " + studentDTO.getStudentId() + " already exists");
+            throw new RuntimeException("Student ID already exists: " + studentDTO.getStudentId());
         }
         
         User user;
@@ -55,25 +65,16 @@ public class StudentService {
         // If userId is provided, use existing user
         if (studentDTO.getUserId() != null) {
             user = userRepository.findById(studentDTO.getUserId())
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + studentDTO.getUserId()));
-            
-            // Check if user already has a student profile
-            if (studentRepository.existsByUserId(user.getId())) {
-                throw new RuntimeException("User already has a student profile");
-            }
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
             
             // Verify user has STUDENT role
             if (user.getRole() != User.Role.STUDENT) {
                 throw new RuntimeException("User must have STUDENT role");
             }
         } else {
-            // Create new user if not provided
-            if (studentDTO.getEmail() == null || studentDTO.getEmail().isEmpty()) {
-                throw new RuntimeException("Email is required for new student");
-            }
-            
+            // Create new user with provided information
             if (userRepository.existsByEmail(studentDTO.getEmail())) {
-                throw new RuntimeException("Email already exists");
+                throw new RuntimeException("Email already in use: " + studentDTO.getEmail());
             }
             
             user = User.builder()
@@ -84,6 +85,7 @@ public class StudentService {
                     .role(User.Role.STUDENT)
                     .enabled(true)
                     .build();
+            
             user = userRepository.save(user);
         }
         
@@ -106,7 +108,7 @@ public class StudentService {
         // Check if new studentId conflicts with existing ones
         if (!student.getStudentId().equals(studentDTO.getStudentId())) {
             if (studentRepository.existsByStudentId(studentDTO.getStudentId())) {
-                throw new RuntimeException("Student ID " + studentDTO.getStudentId() + " already exists");
+                throw new RuntimeException("Student ID already exists: " + studentDTO.getStudentId());
             }
         }
         
@@ -133,8 +135,7 @@ public class StudentService {
         
         // Check if student has results
         if (!student.getResults().isEmpty()) {
-            throw new RuntimeException("Cannot delete student. Student has " + 
-                    student.getResults().size() + " results. Please delete results first.");
+            throw new RuntimeException("Cannot delete student with existing results");
         }
         
         // Clear course enrollments
@@ -152,6 +153,28 @@ public class StudentService {
         return student.getCourses().stream()
                 .map(this::mapCourseToDTO)
                 .collect(Collectors.toList());
+    }
+    
+    public StudentDTO getStudentByUserId(Long userId) {
+        Student student = studentRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found for user"));
+        return mapToDTO(student);
+    }
+
+    public boolean isOwnProfile(Long studentId, Authentication authentication) {
+        if (authentication != null && authentication.getPrincipal() instanceof User) {
+            User currentUser = (User) authentication.getPrincipal();
+            
+            try {
+                Student student = studentRepository.findById(studentId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+                
+                return student.getUser().getId().equals(currentUser.getId());
+            } catch (ResourceNotFoundException e) {
+                return false;
+            }
+        }
+        return false;
     }
     
     private StudentDTO mapToDTO(Student student) {
@@ -176,26 +199,13 @@ public class StudentService {
         dto.setDescription(course.getDescription());
         dto.setCredits(course.getCredits());
         dto.setCapacity(course.getCapacity());
+        
         if (course.getInstructor() != null) {
             dto.setInstructorName(course.getInstructor().getFirstName() + " " + 
                                 course.getInstructor().getLastName());
             dto.setInstructorId(course.getInstructor().getId());
         }
+        
         return dto;
     }
-
-    public StudentDTO getStudentByUserId(Long userId) {
-    Student student = studentRepository.findByUserId(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Student not found for user id: " + userId));
-    return mapToDTO(student);
-}
-
-public boolean isOwnProfile(Long studentId, Authentication authentication) {
-    if (authentication != null && authentication.getPrincipal() instanceof User) {
-        User user = (User) authentication.getPrincipal();
-        Student student = studentRepository.findById(studentId).orElse(null);
-        return student != null && student.getUser().getId().equals(user.getId());
-    }
-    return false;
-}
 }

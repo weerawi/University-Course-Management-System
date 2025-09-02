@@ -1,22 +1,29 @@
 package com.university.course_managment.service;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.university.course_managment.entity.Course;
 import com.university.course_managment.entity.Student;
 import com.university.course_managment.exception.ResourceNotFoundException;
 import com.university.course_managment.repository.CourseRepository;
 import com.university.course_managment.repository.ResultRepository;
 import com.university.course_managment.repository.StudentRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
 public class EnrollmentService {
     
     private final StudentRepository studentRepository;
     private final CourseRepository courseRepository;
     private final ResultRepository resultRepository;
+
+    public EnrollmentService(StudentRepository studentRepository, 
+                            CourseRepository courseRepository,
+                            ResultRepository resultRepository) {
+        this.studentRepository = studentRepository;
+        this.courseRepository = courseRepository;
+        this.resultRepository = resultRepository;
+    }
     
     @Transactional
     public void enrollInCourse(Long courseId, Long userId) {

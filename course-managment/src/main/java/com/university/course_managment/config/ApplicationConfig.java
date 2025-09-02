@@ -1,7 +1,5 @@
-package com.university.course_managment.config; 
+package com.university.course_managment.config;
 
-import com.university.course_managment.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -13,11 +11,16 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.university.course_managment.repository.UserRepository;
+
 @Configuration
-@RequiredArgsConstructor
 public class ApplicationConfig {
     
     private final UserRepository userRepository;
+
+    public ApplicationConfig(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
     
     @Bean
     public UserDetailsService userDetailsService() {

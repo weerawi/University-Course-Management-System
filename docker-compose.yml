@@ -1,3 +1,65 @@
+# services:
+#   mysql:
+#     image: mysql:8.0
+#     container_name: course_management_db
+#     environment:
+#       MYSQL_ROOT_PASSWORD: root123
+#       MYSQL_DATABASE: course_management
+#       MYSQL_USER: dbuser
+#       MYSQL_PASSWORD: dbpass123
+#     ports:
+#       - "3306:3306"
+#     volumes:
+#       - mysql_data:/var/lib/mysql
+#     networks:
+#       - course_network
+#     healthcheck:
+#       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+#       timeout: 20s
+#       retries: 10
+
+#   backend:
+#     build: 
+#       context: ./course-managment
+#       dockerfile: Dockerfile
+#     container_name: course_management_backend
+#     depends_on:
+#       mysql:
+#         condition: service_healthy
+#     environment:
+#       SPRING_PROFILES_ACTIVE: docker
+#       DB_URL: jdbc:mysql://mysql:3306/course_management?createDatabaseIfNotExist=true
+#       DB_USERNAME: dbuser
+#       DB_PASSWORD: dbpass123
+#       JWT_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+#       JWT_EXPIRATION: 86400000
+#     ports:
+#       - "8080:8080"
+#     networks:
+#       - course_network
+#     restart: unless-stopped
+
+#   frontend:
+#     build:
+#       context: ./frontend
+#       dockerfile: Dockerfile
+#     container_name: course_management_frontend
+#     depends_on:
+#       - backend
+#     environment:
+#       NEXT_PUBLIC_API_URL: http://localhost:8080/api
+#     ports:
+#       - "3000:3000"
+#     networks:
+#       - course_network
+#     restart: unless-stopped
+
+# volumes:
+#   mysql_data:
+
+# networks:
+#   course_network:
+#     driver: bridge
 services:
   mysql:
     image: mysql:8.0
@@ -7,8 +69,7 @@ services:
       MYSQL_DATABASE: course_management
       MYSQL_USER: dbuser
       MYSQL_PASSWORD: dbpass123
-    ports:
-      - "3307:3306"
+    # Remove the ports section - MySQL only accessible from other containers
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
