@@ -39,6 +39,83 @@ Upon first run, a default admin account is created:
 - **Password:** `admin123`
 
 ***
+ 
+## 🔌 API Endpoints
+
+**Base URL:**  
+```
+http://localhost:8080/api
+```
+
+### 🔐 Authentication
+
+| Method | Endpoint        | Description            | Access  |
+|--------|----------------|------------------------|---------| 
+| POST   | /auth/login    | Login with credentials | Public  |
+
+### 👥 User Management
+
+| Method | Endpoint           | Description              | Access         |
+|--------|--------------------|--------------------------|----------------|
+| GET    | /users             | Get all users            | Admin          |
+| GET    | /users/{id}        | Get user by ID           | Admin/Self     |
+| POST   | /users             | Create new user          | Admin          |
+| PUT    | /users/{id}        | Update user details      | Admin/Self     |
+| DELETE | /users/{id}        | Delete user              | Admin          |
+| GET    | /users/profile     | Get current profile      | Authenticated  |
+| PUT    | /users/{id}/password | Update password       | Admin/Self     |
+
+*Query Parameters:*  
+- `?role={ROLE}` — Filter users by role  
+- `?unassigned=true&role=STUDENT` — Get unassigned student users
+
+### 📚 Course Management
+
+| Method | Endpoint                  | Description           | Access             |
+|--------|---------------------------|-----------------------|--------------------|
+| GET    | /courses                  | Get all courses       | Authenticated      |
+| GET    | /courses/{id}             | Get course by ID      | Authenticated      |
+| POST   | /courses                  | Create new course     | Admin              |
+| PUT    | /courses/{id}             | Update course         | Admin              |
+| DELETE | /courses/{id}             | Delete course         | Admin              |
+| GET    | /courses/{id}/students    | Get enrolled students | Admin/Instructor   |
+
+### 🎓 Student Management
+
+| Method | Endpoint                       | Description            | Access               |
+|--------|--------------------------------|------------------------|----------------------|
+| GET    | /students                      | Get all students       | Admin/Instructor     |
+| GET    | /students/{id}                 | Get student by ID      | Admin/Instructor/Self|
+| POST   | /students                      | Create student profile | Admin                |
+| PUT    | /students/{id}                 | Update student         | Admin                |
+| DELETE | /students/{id}                 | Delete student         | Admin                |
+| POST   | /students/enroll/{courseId}    | Enroll in course       | Student              |
+| DELETE | /students/drop/{courseId}      | Drop course            | Student              |
+| GET    | /students/{id}/courses         | Get enrolled courses   | Admin/Instructor/Self|
+| GET    | /students/me                   | Get current profile    | Student              |
+
+### 📊 Results Management
+
+| Method | Endpoint                         | Description           | Access           |
+|--------|----------------------------------|-----------------------|------------------|
+| GET    | /results                         | Get all results       | Admin            |
+| GET    | /results/{id}                    | Get result by ID      | Admin/Student    |
+| POST   | /results                         | Create new result     | Instructor/Admin |
+| PUT    | /results/{id}                    | Update result         | Instructor/Admin |
+| DELETE | /results/{id}                    | Delete result         | Instructor/Admin |
+| GET    | /results/student/{studentId}     | Get student's results | Student/Admin    |
+| GET    | /results/course/{courseId}       | Get course results    | Instructor/Admin |
+| GET    | /results/instructor              | Get instructor result | Instructor       |
+
+### 📈 Dashboard Statistics
+
+| Method | Endpoint           | Description             | Access     |
+|--------|--------------------|-------------------------|------------|
+| GET    | /dashboard/admin   | Admin dashboard stats   | Admin      |
+| GET    | /dashboard/student | Student dashboard stats | Student    |
+| GET    | /dashboard/instructor | Instructor dashboard stats | Instructor | 
+
+***
 
 ## 🛠️ Manual Installation & Setup
 
